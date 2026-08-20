@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>CampusPulse | College Events</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+
+<div class="app">
+    
+  <aside class="sidebar">
+
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      <span>CampusPulse</span>
+    </div>
+
+    <nav>
+
+      <button class="nav-item active" data-page="home">
+        🏠
+        <span>Home</span>
+      </button>
+
+      <button class="nav-item" data-page="events">
+        📅
+        <span>Events</span>
+      </button>
+
+      <button class="nav-item" data-page="registrations">
+        🎟️
+        <span>My Registrations</span>
+      </button>
+
+      <button class="nav-item" data-page="recommendations">
+        ⭐
+        <span>Recommendations</span>
+      </button>
+
+      <button class="nav-item" data-page="teams">
+        👥
+        <span>Find Teammates</span>
+      </button>
+
+      <button class="nav-item" data-page="notifications">
+        🔔
+        <span>Notifications</span>
+        <b id="notificationCount">0</b>
+      </button>
+
+      <button class="nav-item" data-page="certificates">
+        🏆
+        <span>Certificates</span>
+      </button>
+
+      <button class="nav-item" data-page="profile">
+        👤
+        <span>Profile</span>
+      </button>
+
+      <button class="nav-item" data-page="settings">
+        ⚙️
+        <span>Settings</span>
+      </button>
+
+    </nav>
+  <div class="create-event-box">
+
+      <h3>Create Event</h3>
+
+      <p>
+        Are you hosting an event?
+      </p>
+
+      <button
+        class="white-btn"
+        data-page="create"
+      >
+        Create Now
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <!--  MAIN -->
+
+  <main class="main">
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+
+      <div class="search">
+
+        🔍
+
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search events..."
+        >
+
+      </div>
+
+      <div class="top-right">
+
+        <button class="notification-btn" data-page="notifications">
+          🔔
+          <span id="notificationBadge">0</span>
+        </button>
+
+        <div class="profile-mini">
+
+          <div class="avatar" id="avatar">
+            S
+          </div>
+
+          <div>
+            <strong id="username">
+              Student
+            </strong>
+
+            <small>
+              Student
+            </small>
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <!-- CONTENT  -->
+
+    <section class="content">
+
+
+      <!--  HOME  -->
+
+      <div
+        class="page active"
+        id="page-home"
+      >
+
+        <section class="hero">
+
+          <div class="hero-content">
+
+            <span class="hero-small">
+              YOUR CAMPUS • YOUR COMMUNITY
+            </span>
+
+            <h1>
+              Hello,
+              <span id="heroName">
+                Student
+              </span>
+              👋
+            </h1>
+
+            <h2>
+              Discover. Connect. Participate.
+            </h2>
+
+            <p>
+              Discover exciting college events,
+              meet talented students, build teams
+              and grow your campus journey.
+            </p>
+
+            <div class="hero-buttons">
+
+              <button
+                class="primary-btn"
+                data-page="events"
+              >
+                Explore Events →
+              </button>
+
+              <button
+                class="secondary-btn"
+                data-page="registrations"
+              >
+                My Registrations
+              </button>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- STATISTICS -->
+
+        <section class="stats">
+
+          <div class="stat-card">
+
+            <div class="stat-icon purple">
+              📅
+            </div>
+
+            <div>
+
+              <small>
+                Events This Month
+              </small>
+
+              <h2 id="eventCount">
+                0
+              </h2>
+
+              <span>
+                Upcoming events
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon green">
+              🎟️
+            </div>
+
+            <div>
+
+              <small>
+                My Registrations
+              </small>
+
+              <h2 id="registrationCount">
+                0
+              </h2>
+
+              <span>
+                Registered events
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon orange">
+              👥
+            </div>
+
+            <div>
+
+              <small>
+                Teams Joined
+              </small>
+
+              <h2>
+                0
+              </h2>
+
+              <span>
+                Active teams
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon pink">
+              🏆
+            </div>
+
+            <div>
+
+              <small>
+                Certificates
+              </small>
+
+              <h2>
+                0
+              </h2>
+
+              <span>
+                Achievements
+              </span>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- RECOMMENDED -->
+
+        <section class="section">
+
+          <div class="section-header">
+
+            <div>
+
+              <h2>
+                Recommended For You
+              </h2>
+
+              <p>
+                Events based on your interests
+              </p>
+
+            </div>
+
+            <button
+              class="view-btn"
+              data-page="recommendations"
+            >
+              View all
+            </button>
+
+          </div>
+
+          <div
+            class="event-grid"
+            id="recommendedEvents"
+          >
+
+          </div>
+
+        </section>
+
+
+        <!-- CATEGORIES -->
+
+        <section class="section">
+
+          <div class="section-header">
+
+            <h2>
+              Popular Categories
+            </h2>
+
+          </div>
+
+          <div class="categories">
+
+            <button class="category">
+              💻
+              <strong>Technical</strong>
+              <small>Hackathons & coding</small>
+            </button>
+
+            <button class="category">
+              🎭
+              <strong>Cultural</strong>
+              <small>Arts & festivals</small>
+            </button>
+
+            <button class="category">
+              ⚽
+              <strong>Sports</strong>
+              <small>Games & fitness</small>
+            </button>
+
+            <button class="category">
+              🛠️
+              <strong>Workshops</strong>
+              <small>Learn new skills</small>
+            </button>
+
+            <button class="category">
+              💼
+              <strong>Career</strong>
+              <small>Jobs & opportunities</small>
+            </button>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+       <!-- EVENTS  -->
+
+      <div
+        class="page"
+        id="page-events"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              DISCOVER
+            </small>
+
+            <h1>
+              Campus Events
+            </h1>
+
+            <p>
+              Find exciting events happening around campus.
+            </p>
+
+          </div>
+
+          <button
+            class="primary-btn"
+            data-page="create"
+          >
+            + Create Event
+          </button>
+
+        </div>
+
+
+        <div class="filters">
+
+          <input
+            id="eventSearch"
+            placeholder="Search events..."
+          >
+
+          <select id="categoryFilter">
+
+            <option value="all">
+              All Categories
+            </option>
+
+            <option value="Hackathon">
+              Hackathon
+            </option>
+
+            <option value="Workshop">
+              Workshop
+            </option>
+
+            <option value="Cultural">
+              Cultural
+            </option>
+
+            <option value="Sports">
+              Sports
+            </option>
+
+            <option value="Career">
+              Career
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div
+          class="event-grid"
+          id="allEvents"
+        >
+
+        </div>
+
+      </div>
+
+
+      <!-- ================= REGISTRATIONS ================= -->
+
+      <div
+        class="page"
+        id="page-registrations"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              YOUR ACTIVITY
+            </small>
+
+            <h1>
+              My Registrations
+            </h1>
+
+            <p>
+              Events you have registered for.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="event-grid"
+          id="myRegistrations"
+        >
+
+        </div>
+
+      </div>
+
+
+      <!-- RECOMMENDATIONS  -->
+
+      <div
+        class="page"
+        id="page-recommendations"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              SMART RECOMMENDATIONS
+            </small>
+
+            <h1>
+              Made For You
+            </h1>
+
+            <p>
+              Events matched with your interests and skills.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="event-grid"
+          id="recommendations"
+        >
+
+        </div>
+
+      </div>
+
+
+      <!--  TEAMS  -->
+
+      <div
+        class="page"
+        id="page-teams"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              COLLABORATE
+            </small>
+
+            <h1>
+              Find Teammates
+            </h1>
+
+            <p>
+              Find students with complementary skills.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="team-grid"
+          id="teams"
+        >
+
+        </div>
+
+      </div>
+
+
+      <!-- NOTIFICATIONS  -->
+
+      <div
+        class="page"
+        id="page-notifications"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              REAL TIME
+            </small>
+
+            <h1>
+              Notifications
+            </h1>
+
+            <p>
+              Stay updated about your events.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="notifications"
+          id="notifications"
+        >
+
+        </div>
+
+      </div>
+
+
+      <!--  CERTIFICATES -->
+
+      <div
+        class="page"
+        id="page-certificates"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              ACHIEVEMENTS
+            </small>
+
+            <h1>
+              My Certificates
+            </h1>
+
+            <p>
+              Your verified event certificates.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="empty">
+
+          <div>
+            🏆
+          </div>
+
+          <h2>
+            No Certificates Yet
+          </h2>
+
+          <p>
+            Attend events and your certificates
+            will appear here.
+          </p>
+
+          <button
+            class="primary-btn"
+            data-page="events"
+          >
+            Explore Events
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- PROFILE -->
+
+      <div
+        class="page"
+        id="page-profile"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              ACCOUNT
+            </small>
+
+            <h1>
+              My Profile
+            </h1>
+
+          </div>
+
+        </div>
+
+
+        <div class="profile-card">
+
+          <div
+            class="large-avatar"
+            id="profileAvatar"
+          >
+            S
+          </div>
+
+          <div>
+
+            <h2 id="profileName">
+              Student
+            </h2>
+
+            <p id="profileEmail">
+              student@example.com
+            </p>
+
+            <span class="role">
+              Student
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="profile-columns">
+
+          <div class="section">
+
+            <h2>
+              My Interests
+            </h2>
+
+            <div
+              class="chips"
+              id="interests"
+            >
+
+            </div>
+
+          </div>
+
+
+          <div class="section">
+
+            <h2>
+              My Skills
+            </h2>
+
+            <div
+              class="chips"
+              id="skills"
+            >
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!--  SETTINGS -->
+
+      <div
+        class="page"
+        id="page-settings"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              PREFERENCES
+            </small>
+
+            <h1>
+              Settings
+            </h1>
+
+          </div>
+
+        </div>
+
+
+        <div class="settings">
+
+          <label>
+
+            <div>
+
+              <strong>
+                Event reminders
+              </strong>
+
+              <small>
+                Get reminders before registered events.
+              </small>
+
+            </div>
+
+            <input
+              type="checkbox"
+              checked
+            >
+
+          </label>
+
+
+          <label>
+
+            <div>
+
+              <strong>
+                Team invitations
+              </strong>
+
+              <small>
+                Receive team invitations.
+              </small>
+
+            </div>
+
+            <input
+              type="checkbox"
+              checked
+            >
+
+          </label>
+
+
+          <label>
+
+            <div>
+
+              <strong>
+                Recommendations
+              </strong>
+
+              <small>
+                Get personalized event recommendations.
+              </small>
+
+            </div>
+
+            <input
+              type="checkbox"
+              checked
+            >
+
+          </label>
+
+        </div>
+
+
+        <button
+          class="logout"
+          id="logoutBtn"
+        >
+          Logout
+        </button>
+
+      </div>
+
+
+      <!-- CREATE EVENT  -->
+
+      <div
+        class="page"
+        id="page-create"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              ORGANIZER
+            </small>
+
+            <h1>
+              Create Event
+            </h1>
+
+            <p>
+              Create a new event for your college.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <form
+          class="event-form"
+          id="eventForm"
+        >
+
+          <label>
+            Event Title
+
+            <input
+              name="title"
+              placeholder="AI Hackathon 2026"
+              required
+            >
+
+          </label>
+
+
+          <label>
+            Category
+
+            <select name="category">
+
+              <option>
+                Hackathon
+              </option>
+
+              <option>
+                Workshop
+              </option>
+
+              <option>
+                Cultural
+              </option>
+
+              <option>
+                Sports
+              </option>
+
+              <option>
+                Career
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label>
+            Description
+
+            <textarea
+              name="description"
+              placeholder="Describe your event..."
+              rows="5"
+            ></textarea>
+
+          </label>
+
+
+          <div class="form-row">
+
+            <label>
+
+              Venue
+
+              <input
+                name="venue"
+                placeholder="Seminar Hall"
+                required
+              >
+
+            </label>
+
+
+            <label>
+
+              Date
+
+              <input
+                type="datetime-local"
+                name="date"
+                required
+              >
+
+            </label>
+
+          </div>
+
+
+          <label>
+
+            Capacity
+
+            <input
+              type="number"
+              name="capacity"
+              value="100"
+              min="1"
+            >
+
+          </label>
+
+
+          <button
+            class="primary-btn"
+            type="submit"
+          >
+            Publish Event →
+          </button>
+
+        </form>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<!--  TOAST -->
+
+<div
+  class="toast"
+  id="toast"
+></div>
+
+
+<script src="app.js"></script>
+
+</body>
+</html>
