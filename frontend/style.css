@@ -1287,3 +1287,305 @@ nav {
   }
 
 }
+
+/* ==========================================
+   EVENT CARDS
+   ========================================== */
+
+.event-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.06);
+    transition: 0.25s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+
+/* Category */
+
+.event-card-top {
+    padding: 20px 20px 0;
+}
+
+.event-category {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: #f3e8ff;
+    color: #7c3aed;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+
+/* Card body */
+
+.event-card-body {
+    padding: 16px 20px 20px;
+}
+
+.event-card-body h3 {
+    margin: 0 0 8px;
+    font-size: 21px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.event-description {
+    margin: 0 0 18px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/* Details */
+
+.event-details {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-bottom: 20px;
+}
+
+.event-detail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.event-detail span:first-child {
+    width: 24px;
+    font-size: 16px;
+}
+
+
+/* Register button */
+
+.event-register-btn {
+    width: 100%;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    background: #111827;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.event-register-btn:hover {
+    background: #374151;
+    transform: translateY(-1px);
+}
+
+.event-register-btn.registered {
+    background: #16a34a;
+    cursor: default;
+}
+
+
+
+/* ==========================================
+   LOGIN / SIGNUP
+   ========================================== */
+
+.auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: linear-gradient(
+        135deg,
+        #f5f3ff,
+        #eef2ff
+    );
+}
+
+.auth-card {
+    width: 420px;
+    max-width: 90%;
+
+    background: white;
+
+    padding: 40px;
+
+    border-radius: 22px;
+
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+.auth-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 5px;
+}
+
+.auth-logo h1 {
+    margin: 0;
+
+    font-size: 28px;
+
+    color: #111827;
+}
+
+.auth-logo .logo-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: #7c3aed;
+    color: white;
+
+    font-weight: 800;
+    font-size: 20px;
+}
+
+.auth-subtitle {
+    text-align: center;
+
+    color: #6b7280;
+
+    margin-bottom: 30px;
+}
+
+.auth-card h2 {
+    margin-bottom: 5px;
+
+    color: #111827;
+}
+
+.auth-card p {
+    color: #6b7280;
+}
+
+.auth-card form {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 14px;
+
+    margin-top: 20px;
+}
+
+.auth-card input[type="text"],
+.auth-card input[type="email"],
+.auth-card input[type="password"] {
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 13px 15px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 10px;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+.auth-card input:focus {
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.auth-btn {
+    border: none;
+
+    padding: 13px;
+
+    border-radius: 10px;
+
+    background: #7c3aed;
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    margin-top: 5px;
+}
+
+.auth-btn:hover {
+    background: #6d28d9;
+}
+
+.auth-switch {
+    text-align: center;
+
+    margin-top: 22px;
+}
+
+.auth-switch button {
+    border: none;
+
+    background: none;
+
+    color: #7c3aed;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.role-label {
+    font-size: 14px;
+
+    font-weight: 600;
+
+    color: #374151;
+}
+
+.role-options {
+    display: flex;
+
+    gap: 25px;
+
+    margin: 5px 0;
+}
+
+.role-options label {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    font-size: 14px;
+
+    color: #374151;
+}
