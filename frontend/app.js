@@ -943,3 +943,61 @@ async function deleteEvent(eventId) {
 
     }
 }
+
+async function registerForEvent(eventId) {
+
+    // Logged-in student
+    const currentUser =
+        JSON.parse(localStorage.getItem("campusUser"));
+
+    // Login nahi hai
+    if (!currentUser) {
+        alert("Please login first to register.");
+        return;
+    }
+
+    // Host ko student registration nahi karne dena
+    if (currentUser.role === "host") {
+        alert("Hosts cannot register for events.");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            "http://localhost:5000/api/registrations",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    userId: currentUser._id,
+                    eventId: eventId
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            alert("Successfully registered for event! 🎉");
+
+        } else {
+
+            alert(data.message || "Registration failed");
+
+        }
+
+    } catch (error) {
+
+        console.error("Registration error:", error);
+
+        alert("Could not connect to backend.");
+
+    }
+
+}
