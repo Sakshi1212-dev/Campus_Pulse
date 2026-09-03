@@ -443,8 +443,24 @@ async function loadEvents() {
             `;
 
             eventContainer.appendChild(eventCard);
+            const registerButton =
+                eventCard.querySelector(".event-register-btn");
 
-        });
+            
+               openRegistrationForm(event);
+
+            registerButton.addEventListener("click", function () {
+               const eventId =
+                  this.dataset.eventId;
+               registerForEvent(event._id);
+
+             });
+          
+
+});
+
+
+       // });
 
     } catch (error) {
 
@@ -460,6 +476,7 @@ async function loadEvents() {
 
 // Load events when website opens
 loadEvents();
+
 // ==========================================
 //   12 .EVENTS THIS MONTH COUNT
 // ==========================================
@@ -763,42 +780,6 @@ function applyRolePermissions() {
 
 }
 
-// ==========================================
-// HOST / STUDENT PERMISSIONS
-// ==========================================
-
-function applyRolePermissions() {
-
-    const user = JSON.parse(
-        localStorage.getItem("campusUser")
-    );
-
-    const hostOnlyElements =
-        document.querySelectorAll(".host-only");
-
-    if (!user) {
-        return;
-    }
-
-    hostOnlyElements.forEach(element => {
-
-        if (user.role === "host") {
-
-            // Host can see Create Event
-            element.style.display = "";
-
-        } else {
-
-            // Student cannot see Create Event
-            element.style.display = "none";
-
-        }
-
-    });
-
-}
-
-
 // Apply permissions when page loads
 applyRolePermissions();
 
@@ -943,61 +924,105 @@ async function deleteEvent(eventId) {
 
     }
 }
+// ==========================================
+// EVENT REGISTRATION FORM
+// ==========================================
 
+let selectedEventId = null;
+
+
+// Open registration form
 async function registerForEvent(eventId) {
 
-    // Logged-in student
     const currentUser =
         JSON.parse(localStorage.getItem("campusUser"));
 
-    // Login nahi hai
     if (!currentUser) {
         alert("Please login first to register.");
         return;
     }
 
-    // Host ko student registration nahi karne dena
     if (currentUser.role === "host") {
         alert("Hosts cannot register for events.");
         return;
     }
 
-    try {
+    // Remember selected event
+    window.selectedEventId = eventId;
 
-        const response = await fetch(
-            "http://localhost:5000/api/registrations",
-            {
-                method: "POST",
+    // Get registration popup
+    const modal =
+        document.getElementById("registrationModal");
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                    userId: currentUser._id,
-                    eventId: eventId
-                })
-            }
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-
-            alert("Successfully registered for event! 🎉");
-
-        } else {
-
-            alert(data.message || "Registration failed");
-
-        }
-
-    } catch (error) {
-
-        console.error("Registration error:", error);
-
-        alert("Could not connect to backend.");
-
+    if (!modal) {
+        alert("Registration form not found in HTML.");
+        return;
     }
 
+    // Fill user information
+    const nameInput =
+        document.getElementById("regName");
+
+    const emailInput =
+        document.getElementById("regEmail");
+
+    if (nameInput) {
+        nameInput.value = currentUser.name || "";
+    }
+
+    if (emailInput) {
+        emailInput.value = currentUser.email || "";
+    }
+
+    // Show popup
+    modal.style.display = "flex";
+}
+
+
+function openRegistrationForm(event) {
+
+    const currentUser =
+        JSON.parse(localStorage.getItem("campusUser"));
+
+    if (!currentUser) {
+        alert("Please login first.");
+        return;
+    }
+
+    if (currentUser.role === "host") {
+        alert("Hosts cannot register for events.");
+        return;
+    }
+
+    const modal =
+        document.getElementById("registrationModal");
+
+    if (!modal) {
+        alert("Registration form not found.");
+        return;
+    }
+
+    const nameInput =
+        document.getElementById("regName");
+
+    const emailInput =
+        document.getElementById("regEmail");
+
+    if (nameInput) {
+        nameInput.value = currentUser.name || "";
+    }
+
+    if (emailInput) {
+        emailInput.value = currentUser.email || "";
+    }
+
+    const eventName =
+        document.getElementById("registrationEventName");
+
+    if (eventName) {
+        eventName.innerText =
+            "Register for: " + event.title;
+    }
+
+    modal.style.display = "flex";
 }

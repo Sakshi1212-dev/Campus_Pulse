@@ -183,6 +183,74 @@
 
 </div>
 
+<!-- EVENT REGISTRATION POPUP -->
+
+<div id="registrationModal" class="registration-modal">
+
+    <div class="registration-box">
+
+        <button
+            type="button"
+            id="closeRegistration"
+            class="close-registration"
+        >
+            ×
+        </button>
+
+        <h2>Register for Event</h2>
+
+        <p id="registrationEventName">
+            Event Name
+        </p>
+
+        <form id="registrationForm">
+
+            <label>Full Name</label>
+            <input
+                type="text"
+                id="regName"
+                placeholder="Enter your name"
+                required
+            >
+
+            <label>Branch</label>
+            <select id="regBranch" required>
+                <option value="">Select Branch</option>
+                <option value="CSE">CSE</option>
+                <option value="ECE">ECE</option>
+                <option value="ME">Mechanical</option>
+                <option value="CE">Civil</option>
+                <option value="EE">Electrical</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label>Year</label>
+            <select id="regYear" required>
+                <option value="">Select Year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+            </select>
+
+            <label>Email</label>
+            <input
+                type="email"
+                id="regEmail"
+                placeholder="Enter your email"
+                required
+            >
+
+            <button type="submit" class="confirm-registration-btn">
+                Confirm Registration
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
 <div class="app">
     
   <aside class="sidebar">

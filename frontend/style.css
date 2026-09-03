@@ -1589,3 +1589,133 @@ nav {
 
     color: #374151;
 }
+
+/* =====================================
+   EVENT REGISTRATION POPUP
+===================================== */
+
+.registration-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+
+    z-index: 9999;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+
+.registration-box {
+    position: relative;
+
+    width: 100%;
+    max-width: 500px;
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+
+.registration-box h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 26px;
+}
+
+
+#registrationEventName {
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+
+.registration-box label {
+    display: block;
+
+    margin-top: 15px;
+    margin-bottom: 7px;
+
+    font-weight: 600;
+}
+
+
+.registration-box input,
+.registration-box select {
+    width: 100%;
+
+    padding: 12px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+    font-size: 15px;
+
+    box-sizing: border-box;
+}
+
+
+.registration-box input:focus,
+.registration-box select:focus {
+    outline: none;
+
+    border-color: #6366f1;
+}
+
+
+.confirm-registration-btn {
+    width: 100%;
+
+    margin-top: 25px;
+
+    padding: 13px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #6366f1;
+
+    color: white;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.confirm-registration-btn:hover {
+    opacity: 0.9;
+}
+
+
+.close-registration {
+    position: absolute;
+
+    right: 18px;
+    top: 12px;
+
+    border: none;
+
+    background: transparent;
+
+    font-size: 28px;
+
+    cursor: pointer;
+}
