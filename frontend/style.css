@@ -1,3 +1,4 @@
+
 * {
   margin: 0;
   padding: 0;
@@ -1218,7 +1219,7 @@ nav {
 @media(max-width:800px) {
 
   .sidebar {
-    width: 230px;
+    width: 235px;
 
     transform:
       translateX(-100%);
@@ -1231,10 +1232,11 @@ nav {
       translateX(0);
   }
 
+  
   .main {
-    margin-left: 0;
+        margin-left: 0;
+    
   }
-
   .topbar {
     padding: 0 15px;
   }
@@ -1590,17 +1592,21 @@ nav {
     color: #374151;
 }
 
-/* =====================================
-   EVENT REGISTRATION POPUP
-===================================== */
+
+/* ==========================================
+   REGISTRATION MODAL
+   ========================================== */
 
 .registration-modal {
     display: none;
+
     position: fixed;
     top: 0;
     left: 0;
+
     width: 100%;
     height: 100%;
+
     background: rgba(0, 0, 0, 0.55);
 
     z-index: 9999;
@@ -1609,9 +1615,7 @@ nav {
     justify-content: center;
 
     padding: 20px;
-    box-sizing: border-box;
 }
-
 
 .registration-box {
     position: relative;
@@ -1625,97 +1629,158 @@ nav {
 
     border-radius: 18px;
 
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
-
 
 .registration-box h2 {
-    margin-top: 0;
+    font-size: 24px;
     margin-bottom: 8px;
-    font-size: 26px;
 }
-
 
 #registrationEventName {
-    margin-bottom: 25px;
+    color: #6855e8;
     font-weight: 600;
+    margin-bottom: 20px;
 }
-
 
 .registration-box label {
     display: block;
 
-    margin-top: 15px;
-    margin-bottom: 7px;
-
+    font-size: 13px;
     font-weight: 600;
-}
 
+    margin-bottom: 6px;
+}
 
 .registration-box input,
 .registration-box select {
     width: 100%;
 
-    padding: 12px;
+    padding: 11px 12px;
 
-    border: 1px solid #ddd;
+    margin-bottom: 15px;
 
-    border-radius: 10px;
+    border: 1px solid #e5e7eb;
 
-    font-size: 15px;
+    border-radius: 9px;
 
-    box-sizing: border-box;
+    outline: none;
+
+    background: white;
 }
-
 
 .registration-box input:focus,
 .registration-box select:focus {
-    outline: none;
-
-    border-color: #6366f1;
+    border-color: #6855e8;
 }
-
 
 .confirm-registration-btn {
     width: 100%;
 
-    margin-top: 25px;
-
-    padding: 13px;
+    padding: 12px;
 
     border: none;
 
-    border-radius: 10px;
+    border-radius: 9px;
 
-    background: #6366f1;
+    background: #6855e8;
 
     color: white;
 
-    font-size: 16px;
-
-    font-weight: 600;
+    font-weight: 700;
 
     cursor: pointer;
 }
 
-
 .confirm-registration-btn:hover {
-    opacity: 0.9;
+    background: #5844d4;
 }
-
 
 .close-registration {
     position: absolute;
 
-    right: 18px;
     top: 12px;
+    right: 15px;
 
     border: none;
 
     background: transparent;
 
-    font-size: 28px;
+    font-size: 25px;
+
+    color: #555;
 
     cursor: pointer;
+}
+
+/* ===== FORCE DESKTOP LAYOUT ===== */
+
+.sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 255px !important;
+    transform: none !important;
+    display: block !important;
+    visibility: visible !important;
+    z-index: 1000 !important;
+}
+
+.main {
+    margin-left: 255px !important;
+    display: block !important;
+}
+
+.topbar {
+    display: flex !important;
+    visibility: visible !important;
+    height: 75px !important;
+}
+
+.app {
+    min-height: 100vh;
+}
+
+/* ===== FINAL HOMEPAGE LAYOUT FIX ===== */
+
+.sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 255px !important;
+    transform: none !important;
+    z-index: 1000 !important;
+}
+
+.main {
+    margin-left: 255px !important;
+    width: calc(100% - 255px) !important;
+    min-width: 0 !important;
+}
+
+.content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 28px !important;
+}
+
+.hero {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    position: relative !important;
+}
+
+.stats {
+    width: 100% !important;
+}
+
+.topbar {
+    width: 100% !important;
 }

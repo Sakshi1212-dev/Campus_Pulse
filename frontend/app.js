@@ -442,19 +442,17 @@ async function loadEvents() {
 
             `;
 
-            eventContainer.appendChild(eventCard);
-            const registerButton =
-                eventCard.querySelector(".event-register-btn");
+           eventContainer.appendChild(eventCard);
 
-            
-               openRegistrationForm(event);
+       const registerButton =
+            eventCard.querySelector(".event-register-btn");
 
-            registerButton.addEventListener("click", function () {
-               const eventId =
-                  this.dataset.eventId;
-               registerForEvent(event._id);
+       registerButton.addEventListener("click", function () {
+       const eventId =
+        this.dataset.eventId;
 
-             });
+       registerForEvent(eventId);
+});
           
 
 });
