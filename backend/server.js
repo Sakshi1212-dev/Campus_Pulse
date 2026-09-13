@@ -43,12 +43,15 @@ app.use("/api/registrations", registrationRoutes);
 // ================================
 // HOME ROUTE
 // ================================
-app.use(express.static(path.join(__dirname, "../frontend")));
+const frontendPath = path.resolve(__dirname, "../frontend");
+
+console.log("SERVING FRONTEND FROM:", frontendPath);
+
+app.use(express.static(frontendPath));
 
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/index.html"));
+    res.sendFile(path.join(frontendPath, "index.html"));
 });
-
 // ================================
 // SERVER
 // ================================
