@@ -3,6 +3,7 @@ const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const aiRecommendationRoutes = require('./routes/aiRecommendationRoutes');
 
 require("dotenv").config();
 
@@ -39,6 +40,7 @@ const registrationRoutes = require("./routes/registrationRoutes");
 app.use("/api/events", eventRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/registrations", registrationRoutes);
+
 
 // ================================
 // HOME ROUTE
