@@ -219,10 +219,13 @@
       <select id="regBranch" required>
         <option value="">Select Branch</option>
         <option value="CSE">CSE</option>
+        <option value="CSE-AIML">CSE (AI &amp; ML)</option>
         <option value="ECE">ECE</option>
         <option value="ME">Mechanical</option>
         <option value="CE">Civil</option>
         <option value="EE">Electrical</option>
+        <option value="Chemical">Chemical</option>
+        <option value="Biotechnology">Biotechnology</option>
         <option value="Other">Other</option>
       </select>
 
@@ -250,6 +253,76 @@
         class="confirm-registration-btn"
       >
         Confirm Registration
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!-- EDIT PROFILE POPUP -->
+
+<div id="editProfileModal" class="registration-modal" style="display: none;">
+
+  <div class="registration-box">
+
+    <button
+      type="button"
+      id="closeEditProfile"
+      class="close-registration"
+    >
+      ×
+    </button>
+
+    <h2>Edit Profile</h2>
+
+    <p style="color:#7b8297; margin-bottom:20px;">
+      Update your account information
+    </p>
+
+    <form id="editProfileForm">
+
+      <label>Full Name</label>
+
+      <input
+        type="text"
+        id="editName"
+        placeholder="Enter your name"
+        required
+      >
+
+      <label>College</label>
+
+      <input
+        type="text"
+        id="editCollege"
+        placeholder="Enter your college"
+        required
+      >
+
+      <label>Course</label>
+
+      <input
+        type="text"
+        id="editCourse"
+        placeholder="Enter your course"
+      >
+
+      <label>Skills (comma separated)</label>
+
+      <input
+        type="text"
+        id="editSkills"
+        placeholder="e.g. Python, UI Design, Public Speaking"
+      >
+
+      <button
+        type="submit"
+        class="confirm-registration-btn"
+      >
+        Save Changes
       </button>
 
     </form>
@@ -575,6 +648,10 @@
                 Events based on your interests
               </p>
 
+              <p style="color:#6855e8; font-size:10.5px; font-weight:700; margin-top:2px;">
+                🎯 Matched to your skills
+              </p>
+
             </div>
 
             <button
@@ -796,6 +873,39 @@
         </div>
 
 
+        <div class="ai-explainer">
+
+          <div class="ai-explainer-step">
+            <span class="ai-explainer-icon">🧑‍🎓</span>
+            <div>
+              <strong>Your Skills</strong>
+              <small id="aiExplainerSkills">Add skills on your Profile</small>
+            </div>
+          </div>
+
+          <span class="ai-explainer-arrow">→</span>
+
+          <div class="ai-explainer-step">
+            <span class="ai-explainer-icon">🔎</span>
+            <div>
+              <strong>We Scan Events</strong>
+              <small>Title, category &amp; description</small>
+            </div>
+          </div>
+
+          <span class="ai-explainer-arrow">→</span>
+
+          <div class="ai-explainer-step">
+            <span class="ai-explainer-icon">🎯</span>
+            <div>
+              <strong>Ranked For You</strong>
+              <small>Best matches shown first, with a % score</small>
+            </div>
+          </div>
+
+        </div>
+
+
         <div
           class="event-grid"
           id="recommendations"
@@ -961,28 +1071,113 @@
         </div>
 
 
-        <div class="profile-card">
+        <div class="profile-header-card">
 
-          <div
-            class="large-avatar"
-            id="profileAvatar"
-          >
-            S
+          <div class="profile-cover"></div>
+
+          <div class="profile-header-body">
+
+            <div class="profile-avatar-wrap">
+
+              <div
+                class="large-avatar"
+                id="profileAvatar"
+              >
+                S
+              </div>
+
+            </div>
+
+            <div class="profile-header-info">
+
+              <h2 id="profileName">
+                Student
+              </h2>
+
+              <p id="profileCollegeCourse">
+                College • Course
+              </p>
+
+              <span class="role" id="profileRole">
+                Student
+              </span>
+
+            </div>
+
+            <button
+              class="edit-profile-btn"
+              id="editProfileBtn"
+              type="button"
+            >
+              Edit Profile
+            </button>
+
           </div>
 
-          <div>
+        </div>
 
-            <h2 id="profileName">
-              Student
-            </h2>
 
-            <p id="profileEmail">
-              student@example.com
-            </p>
+        <div class="profile-quick-stats">
 
-            <span class="role">
-              Student
-            </span>
+          <div class="stat-card">
+
+            <div class="stat-icon green">
+              🎟️
+            </div>
+
+            <div>
+
+              <small>
+                Registered Events
+              </small>
+
+              <h2 id="profileRegCount">
+                0
+              </h2>
+
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon orange">
+              👥
+            </div>
+
+            <div>
+
+              <small>
+                Teams Joined
+              </small>
+
+              <h2 id="profileTeamsCount">
+                0
+              </h2>
+
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon pink">
+              🏆
+            </div>
+
+            <div>
+
+              <small>
+                Certificates
+              </small>
+
+              <h2 id="profileCertCount">
+                0
+              </h2>
+
+            </div>
 
           </div>
 
@@ -994,13 +1189,54 @@
           <div class="section">
 
             <h2>
-              My Interests
+              Account Details
             </h2>
 
-            <div
-              class="chips"
-              id="interests"
-            >
+            <div class="account-details">
+
+              <div class="account-row">
+
+                <div class="account-row-icon">📧</div>
+
+                <div class="account-row-text">
+                  <span class="account-row-label">Email</span>
+                  <span class="account-row-value" id="profileEmail">student@example.com</span>
+                </div>
+
+              </div>
+
+              <div class="account-row">
+
+                <div class="account-row-icon">🏫</div>
+
+                <div class="account-row-text">
+                  <span class="account-row-label">College</span>
+                  <span class="account-row-value" id="profileCollege">—</span>
+                </div>
+
+              </div>
+
+              <div class="account-row">
+
+                <div class="account-row-icon">📘</div>
+
+                <div class="account-row-text">
+                  <span class="account-row-label">Course</span>
+                  <span class="account-row-value" id="profileCourse">—</span>
+                </div>
+
+              </div>
+
+              <div class="account-row">
+
+                <div class="account-row-icon">📅</div>
+
+                <div class="account-row-text">
+                  <span class="account-row-label">Member since</span>
+                  <span class="account-row-value" id="profileJoined">—</span>
+                </div>
+
+              </div>
 
             </div>
 
