@@ -266,22 +266,9 @@ function updateNotificationCount(count) {
 // ==========================================
 // 6. NOTIFICATION CLICK
 // ==========================================
-
-const notificationItems =
-    document.querySelectorAll(".notification");
-
-
-notificationItems.forEach(notification => {
-
-    notification.addEventListener("click", function () {
-
-        this.classList.remove("unread");
-
-        showToast("Notification marked as read ✓");
-
-    });
-
-});
+// (Removed dead static code here — notifications are
+// loaded dynamically. See loadNotifications() further down
+// for the real implementation.)
 
 
 // ==========================================
@@ -317,26 +304,11 @@ categories.forEach(category => {
 // ==========================================
 // 8. TEAM INVITATION
 // ==========================================
-
-const inviteButtons =
-    document.querySelectorAll(".team-card .register-btn");
-
-
-inviteButtons.forEach(button => {
-
-    button.addEventListener("click", function () {
-
-        this.innerText = "Invited ✓";
-
-        this.disabled = true;
-
-        showToast(
-            "Team invitation sent! 👥"
-        );
-
-    });
-
-});
+// (Removed dead code here — team cards are loaded
+// dynamically, so a static querySelectorAll at page load
+// never found any real cards. The actual Find Teammates
+// logic — posting requests, loading them publicly, and
+// AI matching — lives further down in this file.)
 
 
 // ==========================================
@@ -366,7 +338,7 @@ function getCurrentUser() {
 //     You, and Made For You / Recommendations
 // ==========================================
 
-function createEventCard(event, currentUser, isHost, matchPercent) {
+function createEventCard(event, currentUser, isHost, matchPercent, matchReason) {
 
     const eventCard =
         document.createElement("div");
@@ -431,6 +403,8 @@ function createEventCard(event, currentUser, isHost, matchPercent) {
         <div class="event-card-body">
 
             <h3>${event.title}</h3>
+
+            ${matchReason ? `<p class="match-reason">💬 ${matchReason}</p>` : ""}
 
             <p class="event-description">
                 ${event.description}
@@ -621,6 +595,120 @@ async function loadRecommendedEvents() {
 
     }
 
+    const isHost = currentUser.role === "host";
+
+    const emptyMatchMessage = `
+        <div class="skills-empty" style="grid-column: 1 / -1;">
+            <span>🔍</span>
+            <p>
+                No events match your skills yet.
+                Check back later or browse all events.
+            </p>
+        </div>
+    `;
+
+    function renderScoredEvents(scoredEvents) {
+
+        if (homeContainer) {
+
+            homeContainer.innerHTML = "";
+
+            if (scoredEvents.length === 0) {
+
+                homeContainer.innerHTML = emptyMatchMessage;
+
+            } else {
+
+                scoredEvents.slice(0, 3).forEach(item => {
+
+                    homeContainer.appendChild(
+                        createEventCard(
+                            item.event,
+                            currentUser,
+                            isHost,
+                            item.score,
+                            item.reason
+                        )
+                    );
+
+                });
+
+            }
+
+        }
+
+        if (recommendationsContainer) {
+
+            recommendationsContainer.innerHTML = "";
+
+            if (scoredEvents.length === 0) {
+
+                recommendationsContainer.innerHTML = emptyMatchMessage;
+
+            } else {
+
+                scoredEvents.forEach(item => {
+
+                    recommendationsContainer.appendChild(
+                        createEventCard(
+                            item.event,
+                            currentUser,
+                            isHost,
+                            item.score,
+                            item.reason
+                        )
+                    );
+
+                });
+
+            }
+
+        }
+
+    }
+
+
+    // ==========================================
+    // 1. TRY THE AI-POWERED ENDPOINT FIRST
+    // ==========================================
+
+    try {
+
+        const aiResponse = await fetch(
+            `http://localhost:5000/api/ai-recommendations/${currentUser._id}`
+        );
+
+        if (!aiResponse.ok) {
+            throw new Error("AI recommendation endpoint returned an error");
+        }
+
+        const aiResults = await aiResponse.json();
+
+        console.log(
+            "AI recommendation results:",
+            aiResults.map(item => `${item.event.title} (${item.score}%) — ${item.reason}`)
+        );
+
+        renderScoredEvents(aiResults);
+
+        return; // success — no need to fall back
+
+    } catch (aiError) {
+
+        console.warn(
+            "AI recommendations unavailable, falling back to keyword matching:",
+            aiError.message
+        );
+
+    }
+
+
+    // ==========================================
+    // 2. FALLBACK: client-side keyword matching
+    //    (runs if the AI call above failed —
+    //    missing API key, rate limit, network issue, etc.)
+    // ==========================================
+
     try {
 
         const response = await fetch(
@@ -629,11 +717,6 @@ async function loadRecommendedEvents() {
 
         const events = await response.json();
 
-        const isHost = currentUser.role === "host";
-
-        // ==========================================
-        // MATCH SCORING
-        //
         // For each event, we check how many of the
         // student's skills relate to it, and produce a
         // 0–100% score:
@@ -642,12 +725,6 @@ async function loadRecommendedEvents() {
         //     as a full match (weight 1)
         //   - a skill found only as a partial word match
         //     counts as a partial match (weight 0.6)
-        // The score is the average match strength across
-        // all of the student's skills, so having more of
-        // your skills reflected in an event pushes its
-        // score higher.
-        // ==========================================
-
         function getMatchScore(event) {
 
             const haystack = `
@@ -701,80 +778,15 @@ async function loadRecommendedEvents() {
             .sort((a, b) => b.score - a.score);
 
         console.log(
-            "Recommendation debug — your skills:",
+            "Fallback keyword matching — your skills:",
             skills,
             "| total events:",
             events.length,
             "| matched:",
-            scoredEvents.length,
-            scoredEvents.map(item => `${item.event.title} (${item.score}%)`)
+            scoredEvents.length
         );
 
-        const emptyMatchMessage = `
-            <div class="skills-empty" style="grid-column: 1 / -1;">
-                <span>🔍</span>
-                <p>
-                    No events match your skills yet.
-                    Check back later or browse all events.
-                </p>
-            </div>
-        `;
-
-        // Home page: show up to 3 best matches
-        if (homeContainer) {
-
-            homeContainer.innerHTML = "";
-
-            if (scoredEvents.length === 0) {
-
-                homeContainer.innerHTML = emptyMatchMessage;
-
-            } else {
-
-                scoredEvents.slice(0, 3).forEach(item => {
-
-                    homeContainer.appendChild(
-                        createEventCard(
-                            item.event,
-                            currentUser,
-                            isHost,
-                            item.score
-                        )
-                    );
-
-                });
-
-            }
-
-        }
-
-        // Recommendations page: show every match, best first
-        if (recommendationsContainer) {
-
-            recommendationsContainer.innerHTML = "";
-
-            if (scoredEvents.length === 0) {
-
-                recommendationsContainer.innerHTML = emptyMatchMessage;
-
-            } else {
-
-                scoredEvents.forEach(item => {
-
-                    recommendationsContainer.appendChild(
-                        createEventCard(
-                            item.event,
-                            currentUser,
-                            isHost,
-                            item.score
-                        )
-                    );
-
-                });
-
-            }
-
-        }
+        renderScoredEvents(scoredEvents);
 
     } catch (error) {
 
@@ -1199,6 +1211,12 @@ signupForm.addEventListener("submit", async function (e) {
             // Load this user's existing registrations (none yet, but keeps things consistent)
             loadMyRegistrations();
 
+            // Refresh Find Teammates so it reflects this account
+            loadTeamRequests();
+
+            // Refresh notifications for this account
+            loadNotifications();
+
         } else {
 
             alert(
@@ -1500,6 +1518,12 @@ if (loginForm) {
 
                 // Load this user's existing registrations
                 loadMyRegistrations();
+
+                // Refresh Find Teammates so it reflects this account
+                loadTeamRequests();
+
+                // Refresh notifications for this account
+                loadNotifications();
 
             } else {
 
@@ -1880,6 +1904,9 @@ if (editProfileForm) {
                 // so new matches show up right away
                 loadRecommendedEvents();
 
+                // Skills may have changed — re-rank teammate matches too
+                loadTeamRequests();
+
             } else {
 
                 alert(data.message || "Failed to update profile");
@@ -1897,6 +1924,694 @@ if (editProfileForm) {
     });
 
 }
+
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+// Tracks how many unread notifications we saw last time we
+// checked, so we can tell when a NEW one has arrived and
+// pop a toast for it — a lightweight stand-in for real-time
+// push without needing a full websocket setup.
+let lastSeenUnreadCount = 0;
+let notificationsInitialized = false;
+
+
+async function loadNotifications() {
+
+    const currentUser = getCurrentUser();
+
+    const listContainer =
+        document.getElementById("notifications");
+
+    if (!currentUser) {
+
+        updateNotificationCount(0);
+
+        if (listContainer) listContainer.innerHTML = "";
+
+        return;
+
+    }
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5000/api/notifications/${currentUser._id}`
+        );
+
+        const notifications = await response.json();
+
+        const unreadCount =
+            notifications.filter(n => !n.isRead).length;
+
+        updateNotificationCount(unreadCount);
+
+        // Pop a toast if unread count went UP since last check
+        // (and skip the very first load, so you don't get a
+        // toast just for logging in with old unread items)
+        if (notificationsInitialized && unreadCount > lastSeenUnreadCount) {
+
+            showToast("🔔 You have a new notification!");
+
+        }
+
+        notificationsInitialized = true;
+        lastSeenUnreadCount = unreadCount;
+
+
+        if (!listContainer) return;
+
+        listContainer.innerHTML = "";
+
+        if (notifications.length === 0) {
+
+            listContainer.innerHTML = `
+                <div class="skills-empty">
+                    <span>🔔</span>
+                    <p>No notifications yet.</p>
+                </div>
+            `;
+
+            return;
+
+        }
+
+        notifications.forEach(notification => {
+
+            const item = document.createElement("div");
+
+            item.className =
+                "notification" + (notification.isRead ? "" : " unread");
+
+            const timeAgo =
+                new Date(notification.createdAt).toLocaleString();
+
+            item.innerHTML = `
+                <span style="font-size:18px;">
+                    ${notification.isRead ? "✅" : "🔔"}
+                </span>
+                <div>
+                    <p style="margin:0; font-size:13px;">
+                        ${notification.message}
+                    </p>
+                    <small style="color:var(--muted); font-size:10px;">
+                        ${timeAgo}
+                    </small>
+                </div>
+            `;
+
+            item.addEventListener("click", function () {
+
+                if (!notification.isRead) {
+                    markNotificationRead(notification._id);
+                }
+
+            });
+
+            listContainer.appendChild(item);
+
+        });
+
+    } catch (error) {
+
+        console.error("Error loading notifications:", error);
+
+    }
+
+}
+
+
+async function markNotificationRead(notificationId) {
+
+    try {
+
+        await fetch(
+            `http://localhost:5000/api/notifications/${notificationId}/read`,
+            { method: "PUT" }
+        );
+
+        loadNotifications();
+
+    } catch (error) {
+
+        console.error("Mark notification read error:", error);
+
+    }
+
+}
+
+
+// Load on page open (in case already logged in) and then
+// poll periodically so unread counts / new notifications
+// show up without a manual refresh.
+loadNotifications();
+
+setInterval(loadNotifications, 20000); // every 20 seconds
+
+
+// ==========================================
+// FIND TEAMMATES
+// ==========================================
+
+// --- Open/close the Post Request modal ---
+
+const postTeamRequestBtn =
+    document.getElementById("postTeamRequestBtn");
+
+const teamRequestModal =
+    document.getElementById("teamRequestModal");
+
+const teamRequestForm =
+    document.getElementById("teamRequestForm");
+
+const closeTeamRequestBtn =
+    document.getElementById("closeTeamRequest");
+
+
+if (postTeamRequestBtn) {
+
+    postTeamRequestBtn.addEventListener("click", function () {
+
+        const currentUser = getCurrentUser();
+
+        if (!currentUser) {
+            alert("Please login first.");
+            return;
+        }
+
+        teamRequestModal.style.display = "flex";
+
+    });
+
+}
+
+
+if (closeTeamRequestBtn) {
+
+    closeTeamRequestBtn.addEventListener("click", function () {
+
+        teamRequestModal.style.display = "none";
+
+    });
+
+}
+
+
+// --- Submit a new request ---
+
+if (teamRequestForm) {
+
+    teamRequestForm.addEventListener("submit", async function (e) {
+
+        e.preventDefault();
+
+        const currentUser = getCurrentUser();
+
+        if (!currentUser) {
+            alert("Please login first.");
+            return;
+        }
+
+        const projectTitle =
+            document.getElementById("teamProjectTitle").value.trim();
+
+        const description =
+            document.getElementById("teamDescription").value.trim();
+
+        const skillsRaw =
+            document.getElementById("teamSkillsNeeded").value.trim();
+
+        const skillsNeeded = skillsRaw
+            ? skillsRaw.split(",").map(s => s.trim()).filter(Boolean)
+            : [];
+
+        try {
+
+            const response = await fetch(
+                "http://localhost:5000/api/teams",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userId: currentUser._id,
+                        projectTitle,
+                        description,
+                        skillsNeeded
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (response.ok) {
+
+                showToast("Teammate request posted! 🤝");
+
+                teamRequestModal.style.display = "none";
+
+                teamRequestForm.reset();
+
+                loadTeamRequests();
+
+            } else {
+
+                alert(data.message || "Failed to post request");
+
+            }
+
+        } catch (error) {
+
+            console.error("Post team request error:", error);
+
+            alert("Could not connect to backend.");
+
+        }
+
+    });
+
+}
+
+
+// --- Render one team request card ---
+
+function createTeamRequestCard(request, currentUser, matchPercent, matchReason) {
+
+    const poster = request.userId; // populated by backend
+
+    const card = document.createElement("div");
+
+    card.className = "team-card";
+
+    const isOwner =
+        currentUser &&
+        poster &&
+        poster._id === currentUser._id;
+
+    const skillsHTML = (request.skillsNeeded || [])
+        .map(skill => `<span class="team-skill-chip">${skill}</span>`)
+        .join("");
+
+    let matchBadgeHTML = "";
+
+    if (typeof matchPercent === "number") {
+
+        const emoji =
+            matchPercent >= 80 ? "🔥" :
+            matchPercent >= 50 ? "⭐" : "💡";
+
+        matchBadgeHTML = `
+            <span class="match-badge">
+                ${emoji} ${matchPercent}% Match
+            </span>
+        `;
+
+    }
+
+    // --- Footer content differs for owner vs everyone else ---
+
+    let footerHTML = "";
+
+    if (isOwner) {
+
+        const interested = request.interestedUsers || [];
+
+        const interestedListHTML = interested.length === 0
+            ? `<p style="color:var(--muted); font-size:11.5px; margin-top:8px;">No one has requested to join yet.</p>`
+            : `
+                <div class="interested-list">
+                    ${interested.map(entry => `
+                        <div class="interested-chip">
+                            <div class="interested-avatar">
+                                ${entry.userId ? entry.userId.name.charAt(0).toUpperCase() : "?"}
+                            </div>
+                            <div>
+                                <strong>${entry.userId ? entry.userId.name : "Unknown"}</strong>
+                                ${entry.message ? `<small>"${entry.message}"</small>` : ""}
+                            </div>
+                        </div>
+                    `).join("")}
+                </div>
+            `;
+
+        footerHTML = `
+            <div class="team-card-footer" style="flex-direction:column; align-items:stretch;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:11.5px;">
+                        🙋 ${interested.length} interested
+                    </strong>
+                    <button class="team-delete-btn" data-request-id="${request._id}">
+                        Delete My Request
+                    </button>
+                </div>
+                ${interestedListHTML}
+            </div>
+        `;
+
+    } else {
+
+        const alreadyRequested =
+            currentUser &&
+            (request.interestedUsers || []).some(
+                entry => entry.userId && entry.userId._id === currentUser._id
+            );
+
+        footerHTML = `
+            <div class="team-card-footer">
+                <button
+                    class="register-btn team-join-btn"
+                    data-request-id="${request._id}"
+                    ${alreadyRequested ? "disabled style=\"background:#21b573;cursor:default;\"" : ""}
+                >
+                    ${alreadyRequested ? "Requested ✓" : "Request to Join"}
+                </button>
+            </div>
+        `;
+
+    }
+
+    card.innerHTML = `
+
+        <div class="team-header">
+
+            <div class="team-avatar">
+                ${poster ? poster.name.charAt(0).toUpperCase() : "?"}
+            </div>
+
+            <div>
+                <strong>${poster ? poster.name : "Unknown student"}</strong><br>
+                <small style="color:var(--muted); font-size:10px;">
+                    ${poster && poster.college ? poster.college : ""}
+                </small>
+            </div>
+
+            ${matchBadgeHTML}
+
+        </div>
+
+        <div class="team-card-title">${request.projectTitle}</div>
+
+        ${matchReason ? `<p class="match-reason">💬 ${matchReason}</p>` : ""}
+
+        <p class="team-card-desc">${request.description}</p>
+
+        ${skillsHTML ? `<div class="team-card-skills">${skillsHTML}</div>` : ""}
+
+        ${footerHTML}
+
+    `;
+
+    const deleteBtn = card.querySelector(".team-delete-btn");
+
+    if (deleteBtn) {
+
+        deleteBtn.addEventListener("click", function () {
+
+            deleteTeamRequest(this.dataset.requestId);
+
+        });
+
+    }
+
+    const joinBtn = card.querySelector(".team-join-btn");
+
+    if (joinBtn) {
+
+        joinBtn.addEventListener("click", function () {
+
+            requestToJoinTeam(this.dataset.requestId);
+
+        });
+
+    }
+
+    return card;
+
+}
+
+
+// --- Request to join a specific team ---
+
+async function requestToJoinTeam(requestId) {
+
+    const currentUser = getCurrentUser();
+
+    if (!currentUser) {
+        alert("Please login first.");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5000/api/teams/${requestId}/interest`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: currentUser._id })
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            showToast("Request sent! 🙋");
+
+            loadTeamRequests();
+
+        } else {
+
+            alert(data.message);
+
+        }
+
+    } catch (error) {
+
+        console.error("Request to join error:", error);
+
+        alert("Could not connect to backend.");
+
+    }
+
+}
+
+
+// --- Delete own request ---
+
+async function deleteTeamRequest(requestId) {
+
+    const currentUser = getCurrentUser();
+
+    const confirmDelete = confirm("Delete this teammate request?");
+
+    if (!confirmDelete) return;
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5000/api/teams/${requestId}`,
+            {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: currentUser._id })
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            showToast("Request deleted");
+
+            loadTeamRequests();
+
+        } else {
+
+            alert(data.message);
+
+        }
+
+    } catch (error) {
+
+        console.error("Delete team request error:", error);
+
+        alert("Could not connect to backend.");
+
+    }
+
+}
+
+
+// --- Load and render all requests, with AI matching ---
+
+async function loadTeamRequests() {
+
+    const container = document.getElementById("teams");
+
+    const explainerSkills =
+        document.getElementById("teamExplainerSkills");
+
+    if (!container) return;
+
+    const currentUser = getCurrentUser();
+
+    if (explainerSkills) {
+
+        const mySkills = (currentUser && currentUser.skills) || [];
+
+        explainerSkills.innerText =
+            mySkills.length > 0
+                ? mySkills.join(", ")
+                : "Add skills on your Profile";
+
+    }
+
+    if (!currentUser) {
+
+        container.innerHTML = `
+            <div class="skills-empty" style="grid-column: 1 / -1;">
+                <span>🤝</span>
+                <p>Login to see and post teammate requests.</p>
+            </div>
+        `;
+
+        return;
+
+    }
+
+    try {
+
+        // Always fetch the full public list first — everyone
+        // should be able to see every request regardless of
+        // whether AI matching succeeds.
+        const response = await fetch("http://localhost:5000/api/teams");
+
+        const allRequests = await response.json();
+
+        const myRequests = allRequests.filter(request =>
+            request.userId && request.userId._id === currentUser._id
+        );
+
+        const otherRequests = allRequests.filter(request =>
+            request.userId && request.userId._id !== currentUser._id
+        );
+
+        if (allRequests.length === 0) {
+
+            container.innerHTML = `
+                <div class="skills-empty" style="grid-column: 1 / -1;">
+                    <span>🤝</span>
+                    <p>No teammate requests yet. Be the first to post one!</p>
+                </div>
+            `;
+
+            return;
+
+        }
+
+        // Try AI scoring on top of the public list
+        try {
+
+            const aiResponse = await fetch(
+                `http://localhost:5000/api/ai-teammates/${currentUser._id}`
+            );
+
+            if (!aiResponse.ok) {
+                throw new Error("AI teammate endpoint returned an error");
+            }
+
+            const aiResults = await aiResponse.json();
+
+            console.log("AI teammate match results:", aiResults);
+
+            // Build a lookup of scores by request id
+            const scoreMap = {};
+
+            aiResults.forEach(item => {
+                scoreMap[item.request._id] = item;
+            });
+
+            // Sort other students' requests: matched (scored)
+            // first by score descending, unscored after
+            const sortedOthers = [...otherRequests].sort((a, b) => {
+
+                const scoreA = scoreMap[a._id] ? scoreMap[a._id].score : -1;
+                const scoreB = scoreMap[b._id] ? scoreMap[b._id].score : -1;
+
+                return scoreB - scoreA;
+
+            });
+
+            container.innerHTML = "";
+
+            // Your own posts always show first, so you can
+            // manage who's interested without hunting for them
+            myRequests.forEach(request => {
+
+                container.appendChild(
+                    createTeamRequestCard(request, currentUser)
+                );
+
+            });
+
+            sortedOthers.forEach(request => {
+
+                const scored = scoreMap[request._id];
+
+                container.appendChild(
+                    createTeamRequestCard(
+                        request,
+                        currentUser,
+                        scored ? scored.score : undefined,
+                        scored ? scored.reason : undefined
+                    )
+                );
+
+            });
+
+            return;
+
+        } catch (aiError) {
+
+            console.warn(
+                "AI teammate matching unavailable, showing unranked list:",
+                aiError.message
+            );
+
+        }
+
+        // Fallback: show everyone, unranked, no badges
+        // (own posts still first)
+        container.innerHTML = "";
+
+        myRequests.forEach(request => {
+
+            container.appendChild(
+                createTeamRequestCard(request, currentUser)
+            );
+
+        });
+
+        otherRequests.forEach(request => {
+
+            container.appendChild(
+                createTeamRequestCard(request, currentUser)
+            );
+
+        });
+
+    } catch (error) {
+
+        console.error("Error loading team requests:", error);
+
+    }
+
+}
+
+// Load when the page opens (in case already logged in)
+loadTeamRequests();
 
 
 // ==========================================

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -323,6 +324,68 @@
         class="confirm-registration-btn"
       >
         Save Changes
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!-- POST TEAM REQUEST POPUP -->
+
+<div id="teamRequestModal" class="registration-modal" style="display: none;">
+
+  <div class="registration-box">
+
+    <button
+      type="button"
+      id="closeTeamRequest"
+      class="close-registration"
+    >
+      ×
+    </button>
+
+    <h2>Post a Teammate Request</h2>
+
+    <p style="color:#7b8297; margin-bottom:20px;">
+      Let other students know what you're building and what skills you need
+    </p>
+
+    <form id="teamRequestForm">
+
+      <label>Project / Event</label>
+
+      <input
+        type="text"
+        id="teamProjectTitle"
+        placeholder="e.g. AI Hackathon 2026"
+        required
+      >
+
+      <label>Description</label>
+
+      <input
+        type="text"
+        id="teamDescription"
+        placeholder="e.g. Looking for teammates for an AI hackathon"
+        required
+      >
+
+      <label>Skills Needed (comma separated)</label>
+
+      <input
+        type="text"
+        id="teamSkillsNeeded"
+        placeholder="e.g. Python, React,Dance,Singing, Machine Learning"
+      >
+
+      <button
+        type="submit"
+        class="confirm-registration-btn"
+      >
+        Post Request
       </button>
 
     </form>
@@ -939,6 +1002,47 @@
               Find students with complementary skills.
             </p>
 
+          </div>
+
+          <button
+            class="primary-btn"
+            id="postTeamRequestBtn"
+            type="button"
+          >
+            + Post Request
+          </button>
+
+        </div>
+
+
+        <div class="ai-explainer">
+
+          <div class="ai-explainer-step">
+            <span class="ai-explainer-icon">🧑‍🎓</span>
+            <div>
+              <strong>Your Skills</strong>
+              <small id="teamExplainerSkills">Add skills on your Profile</small>
+            </div>
+          </div>
+
+          <span class="ai-explainer-arrow">→</span>
+
+          <div class="ai-explainer-step">
+            <span class="ai-explainer-icon">🔎</span>
+            <div>
+              <strong>We Scan Requests</strong>
+              <small>Every open teammate post</small>
+            </div>
+          </div>
+
+          <span class="ai-explainer-arrow">→</span>
+
+          <div class="ai-explainer-step">
+            <span class="ai-explainer-icon">🤝</span>
+            <div>
+              <strong>Best Matches First</strong>
+              <small>Ranked with a % score</small>
+            </div>
           </div>
 
         </div>
