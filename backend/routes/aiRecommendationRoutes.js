@@ -76,7 +76,12 @@ Only include events with score > 0. Sort by score descending.`;
                     "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
+                    // llama-3.3-70b-versatile was deprecated by Groq
+                    // for free/developer accounts. openai/gpt-oss-20b
+                    // is a solid free-tier model as of writing.
+                    // Override with GROQ_MODEL in .env if Groq
+                    // changes their lineup again in the future.
+                    model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
                     messages: [
                         { role: "user", content: prompt }
                     ],
