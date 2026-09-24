@@ -111,6 +111,22 @@ router.post("/", async (req, res) => {
         const savedEvent = await newEvent.save();
 
 
+        // 🔔 Broadcast to every connected student in real time,
+        // via the Socket.IO instance set up in server.js
+        const io = req.app.get("io");
+
+        if (io) {
+
+            io.emit("newEvent", {
+                eventId: savedEvent._id,
+                title: savedEvent.title,
+                category: savedEvent.category,
+                hostName: host.name
+            });
+
+        }
+
+
         res.status(201).json(savedEvent);
 
 
