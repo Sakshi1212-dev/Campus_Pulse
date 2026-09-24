@@ -45,6 +45,9 @@ const registrationRoutes = require("./routes/registrationRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const aiTeammateRoutes = require("./routes/aiTeammateRoutes");
 const aiRecommendationRoutes = require("./routes/aiRecommendationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const eventMessageRoutes = require("./routes/eventMessageRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 app.use("/api/events", eventRoutes);
 app.use("/api/users", userRoutes);
@@ -52,6 +55,9 @@ app.use("/api/registrations", registrationRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/ai-teammates", aiTeammateRoutes);
 app.use("/api/ai-recommendations", aiRecommendationRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/events", eventMessageRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ================================
 // STATIC FRONTEND

@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 const Registration = require("../models/Registration");
+const Event = require("../models/Event");
+const Notification = require("../models/Notification");
 
 // =====================================
 // REGISTER FOR EVENT
@@ -11,7 +13,7 @@ router.post("/", async (req, res) => {
 
     try {
 
-        const { userId, eventId } = req.body;
+        const { userId, eventId, name, branch, year, email } = req.body;
 
         // Check if already registered
 
@@ -34,11 +36,35 @@ router.post("/", async (req, res) => {
         const registration =
             new Registration({
                 userId,
-                eventId
+                eventId,
+                name,
+                branch,
+                year,
+                email
             });
 
         const savedRegistration =
             await registration.save();
+
+        // Notify the student their registration went through
+        try {
+
+            const event = await Event.findById(eventId);
+
+            await Notification.create({
+                userId,
+                message: event
+                    ? `You're registered for "${event.title}" on ${new Date(event.date).toLocaleDateString()}`
+                    : "Your event registration was confirmed",
+                type: "registration_confirmed",
+                relatedId: eventId
+            });
+
+        } catch (notifyError) {
+
+            console.error("Failed to create registration notification:", notifyError);
+
+        }
 
         res.status(201).json({
             message: "Successfully registered",
