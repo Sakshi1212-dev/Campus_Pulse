@@ -115,6 +115,8 @@ router.post("/", async (req, res) => {
         // via the Socket.IO instance set up in server.js
         const io = req.app.get("io");
 
+        console.log("Attempting to broadcast newEvent. io exists?", !!io);
+
         if (io) {
 
             io.emit("newEvent", {
@@ -123,6 +125,8 @@ router.post("/", async (req, res) => {
                 category: savedEvent.category,
                 hostName: host.name
             });
+
+            console.log("Broadcast sent for event:", savedEvent.title);
 
         }
 
