@@ -132,19 +132,52 @@ const toast =
     document.getElementById("toast");
 
 
+// Toasts now queue instead of overwriting each other. If
+// "Event registered!" and "🔔 New notification!" both fire
+// within a second of each other, both get shown in full,
+// one after another, instead of the second silently
+// replacing the first before it was readable.
+
+let toastQueue = [];
+let toastShowing = false;
+
 function showToast(message) {
 
     if (!toast) return;
 
+    toastQueue.push(message);
+
+    processToastQueue();
+
+}
+
+function processToastQueue() {
+
+    if (toastShowing || toastQueue.length === 0) {
+        return;
+    }
+
+    toastShowing = true;
+
+    const message = toastQueue.shift();
 
     toast.innerText = message;
 
     toast.classList.add("show");
 
-
     setTimeout(() => {
 
         toast.classList.remove("show");
+
+        // Small gap between toasts so it's clear a new
+        // message started, not just text flickering
+        setTimeout(() => {
+
+            toastShowing = false;
+
+            processToastQueue();
+
+        }, 300);
 
     }, 3000);
 
@@ -354,13 +387,22 @@ function createEventCard(event, currentUser, isHost, matchPercent, matchReason) 
         event.createdBy === currentUser._id;
 
     const actionButtonHTML = isOwner
-        ? `<button
-                class="register-btn delete-event-btn"
-                data-event-id="${event._id}"
-                style="background:#e34267;"
-           >
-                Delete Event
-           </button>`
+        ? `<div style="display:flex; gap:8px;">
+                <button
+                    class="register-btn message-attendees-btn"
+                    data-event-id="${event._id}"
+                    style="background:#171c2f; flex:1;"
+                >
+                    ✉️ Message Attendees
+                </button>
+                <button
+                    class="register-btn delete-event-btn"
+                    data-event-id="${event._id}"
+                    style="background:#e34267;"
+                >
+                    Delete
+                </button>
+           </div>`
         : `<button
                 class="register-btn event-register-btn"
                 data-event-id="${event._id}"
@@ -474,6 +516,22 @@ function createEventCard(event, currentUser, isHost, matchPercent, matchReason) 
 
     }
 
+
+    const messageButton =
+        eventCard.querySelector(".message-attendees-btn");
+
+    if (messageButton) {
+
+        messageButton.addEventListener("click", function () {
+
+            const eventId = this.dataset.eventId;
+
+            messageAttendees(eventId);
+
+        });
+
+    }
+
     return eventCard;
 
 }
@@ -541,6 +599,48 @@ async function loadEvents() {
 
 // Load events when website opens
 loadEvents();
+
+
+// ==========================================
+// REAL-TIME: NEW EVENT BROADCAST (Socket.IO)
+// ==========================================
+//
+// index.html loads the Socket.IO client library via
+// <script src="/socket.io/socket.io.js">, which gives us
+// the global `io()` function here. When any host publishes
+// a new event, the backend broadcasts it instantly to every
+// connected browser — no need to wait for a poll or refresh.
+
+if (typeof io === "function") {
+
+    const socket = io();
+
+    socket.on("connect", () => {
+        console.log("Connected to real-time server:", socket.id);
+    });
+
+    socket.on("newEvent", (data) => {
+
+        console.log("Real-time: new event published", data);
+
+        showToast(`🔔 New event: ${data.title}`);
+
+        // Refresh the events list so it appears immediately
+        loadEvents();
+
+    });
+
+    socket.on("connect_error", (error) => {
+        console.warn("Socket connection failed:", error.message);
+    });
+
+} else {
+
+    console.warn(
+        "Socket.IO client not loaded — real-time updates disabled."
+    );
+
+}
 
 
 // ==========================================
@@ -1613,6 +1713,64 @@ async function deleteEvent(eventId) {
     }
 }
 
+
+// ==========================================
+// MESSAGE ATTENDEES (host only, own event)
+// ==========================================
+
+async function messageAttendees(eventId) {
+
+    const currentUser = getCurrentUser();
+
+    if (!currentUser || currentUser.role !== "host") {
+        alert("Only hosts can message attendees.");
+        return;
+    }
+
+    const message = prompt(
+        "Message to everyone registered for this event:"
+    );
+
+    if (!message || !message.trim()) {
+        return; // cancelled or empty
+    }
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5000/api/events/${eventId}/message`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: currentUser._id,
+                    message: message.trim()
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            showToast(data.message);
+
+        } else {
+
+            alert(data.message);
+
+        }
+
+    } catch (error) {
+
+        console.error("Message attendees error:", error);
+
+        alert("Could not connect to backend.");
+
+    }
+
+}
+
 // ==========================================
 // EVENT REGISTRATION FORM (STUDENT ONLY)
 // ==========================================
@@ -1749,6 +1907,9 @@ if (registrationForm) {
                 // Refresh so the newly registered event shows up
                 // immediately in "My Registrations" and the stat card
                 loadMyRegistrations();
+
+                // Show the registration-confirmed notification right away
+                loadNotifications();
 
             } else {
 
