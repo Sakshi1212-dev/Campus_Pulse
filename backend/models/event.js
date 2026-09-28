@@ -44,4 +44,8 @@ const eventSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+
+eventSchema.index({ category: 1 });
+eventSchema.index({ date: 1 });
+eventSchema.index({ createdBy: 1 });
 module.exports = mongoose.model("Event", eventSchema);

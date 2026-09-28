@@ -3,6 +3,13 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 
 const User = require("../models/User");
+const generateToken = require("../utils/generateToken");
+const {
+    handleValidation,
+    signupValidation,
+    loginValidation
+} = require("../middleware/validate");
+const { verifyToken } = require("../middleware/auth");
 
 // =====================================
 // GET ALL USERS
@@ -33,7 +40,7 @@ router.get("/", async (req, res) => {
 // SIGNUP
 // =====================================
 
-router.post("/signup", async (req, res) => {
+router.post("/signup", signupValidation, handleValidation, async (req, res) => {
 
     try {
 
@@ -118,11 +125,15 @@ router.post("/signup", async (req, res) => {
         };
 
 
+        const token = generateToken(savedUser);
+
         res.status(201).json({
 
             message: "Account created successfully",
 
-            user: userResponse
+            user: userResponse,
+
+            token
 
         });
 
@@ -147,7 +158,7 @@ router.post("/signup", async (req, res) => {
 // LOGIN
 // =====================================
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginValidation, handleValidation, async (req, res) => {
 
     try {
 
@@ -226,11 +237,15 @@ router.post("/login", async (req, res) => {
         };
 
 
+        const token = generateToken(user);
+
         res.status(200).json({
 
             message: "Login successful",
 
-            user: userResponse
+            user: userResponse,
+
+            token
 
         });
 
@@ -255,9 +270,19 @@ router.post("/login", async (req, res) => {
 // UPDATE PROFILE
 // =====================================
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
 
     try {
+
+        // A logged-in user can only edit their own profile —
+        // not just anyone whose _id they happen to know.
+        if (req.user.userId !== req.params.id) {
+
+            return res.status(403).json({
+                message: "You can only update your own profile"
+            });
+
+        }
 
         const { name, college, course, skills } = req.body;
 

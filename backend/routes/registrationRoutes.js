@@ -73,6 +73,17 @@ router.post("/", async (req, res) => {
 
     } catch (error) {
 
+        // Duplicate key from the unique (userId, eventId) index —
+        // happens if two registration clicks land at nearly the
+        // same time and both pass the earlier findOne check.
+        if (error.code === 11000) {
+
+            return res.status(400).json({
+                message: "Already registered for this event"
+            });
+
+        }
+
         res.status(500).json({
             message: "Registration failed",
             error: error.message

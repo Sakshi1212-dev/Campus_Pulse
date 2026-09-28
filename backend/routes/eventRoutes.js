@@ -4,6 +4,8 @@ const router = express.Router();
 const Event = require("../models/Event");
 const User = require("../models/User");
 const Registration = require("../models/Registration");
+const { verifyToken, requireRole } = require("../middleware/auth");
+const { eventValidation, handleValidation } = require("../middleware/validate");
 // =====================================
 // GET ALL EVENTS
 // =====================================
@@ -61,7 +63,13 @@ router.get("/:id", async (req, res) => {
 // =====================================
 // CREATE EVENT
 // =====================================
-router.post("/", async (req, res) => {
+router.post(
+    "/",
+    verifyToken,
+    requireRole("host"),
+    eventValidation,
+    handleValidation,
+    async (req, res) => {
 
     try {
 
@@ -71,24 +79,18 @@ router.post("/", async (req, res) => {
             description,
             venue,
             date,
-            capacity,
-            userId
+            capacity
         } = req.body;
 
+        // The host is whoever the verified token says it is —
+        // not whatever userId the request body claims.
+        const userId = req.user.userId;
 
-        // Check host
         const host = await User.findById(userId);
 
         if (!host) {
             return res.status(404).json({
                 message: "User not found"
-            });
-        }
-
-
-        if (host.role !== "host") {
-            return res.status(403).json({
-                message: "Only hosts can create events"
             });
         }
 
@@ -151,11 +153,13 @@ router.post("/", async (req, res) => {
 // =====================================
 // DELETE EVENT
 // =====================================
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, requireRole("host"), async (req, res) => {
 
     try {
 
-        const { userId } = req.body;
+        // The requester is whoever the verified token says —
+        // not whatever userId the request body claims.
+        const userId = req.user.userId;
 
         const event =
             await Event.findById(req.params.id);
@@ -163,22 +167,6 @@ router.delete("/:id", async (req, res) => {
         if (!event) {
             return res.status(404).json({
                 message: "Event not found"
-            });
-        }
-
-        const user =
-            await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({
-                message: "User not found"
-            });
-        }
-
-        // Only host can delete
-        if (user.role !== "host") {
-            return res.status(403).json({
-                message: "Only hosts can delete events"
             });
         }
 

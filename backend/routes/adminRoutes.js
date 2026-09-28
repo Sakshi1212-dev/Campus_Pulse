@@ -4,51 +4,26 @@ const router = express.Router();
 const User = require("../models/User");
 const Event = require("../models/Event");
 const Registration = require("../models/Registration");
+const { verifyToken, requireRole } = require("../middleware/auth");
 
 // ==========================================
-// HELPER: verify the requester is an admin
+// Every route below now requires a valid JWT AND a role
+// of "admin" — decoded from the token itself, not trusted
+// from a client-supplied adminId in the query/body. This
+// is applied once here to the whole router, so every route
+// defined after this line is protected automatically.
 // ==========================================
-//
-// Since this project doesn't use JWT/sessions, we check
-// the admin's identity the same way the rest of the app
-// does: by looking up the userId that was sent, and
-// confirming their role is "admin" in the database.
-// This runs on every admin route below.
 
-async function requireAdmin(adminId) {
-
-    if (!adminId) {
-        return { ok: false, status: 400, message: "adminId is required" };
-    }
-
-    const admin = await User.findById(adminId);
-
-    if (!admin) {
-        return { ok: false, status: 404, message: "Admin user not found" };
-    }
-
-    if (admin.role !== "admin") {
-        return { ok: false, status: 403, message: "Admin access only" };
-    }
-
-    return { ok: true };
-
-}
+router.use(verifyToken, requireRole("admin"));
 
 
 // =====================================
 // GET ALL USERS (students + hosts + admins)
-// GET /api/admin/users?adminId=...
+// GET /api/admin/users
 // =====================================
 router.get("/users", async (req, res) => {
 
     try {
-
-        const check = await requireAdmin(req.query.adminId);
-
-        if (!check.ok) {
-            return res.status(check.status).json({ message: check.message });
-        }
 
         const users = await User.find().select("-password");
 
@@ -68,17 +43,11 @@ router.get("/users", async (req, res) => {
 
 // =====================================
 // GET ALL EVENTS (regardless of host)
-// GET /api/admin/events?adminId=...
+// GET /api/admin/events
 // =====================================
 router.get("/events", async (req, res) => {
 
     try {
-
-        const check = await requireAdmin(req.query.adminId);
-
-        if (!check.ok) {
-            return res.status(check.status).json({ message: check.message });
-        }
 
         const events = await Event.find()
             .populate("createdBy", "name email role")
@@ -100,17 +69,11 @@ router.get("/events", async (req, res) => {
 
 // =====================================
 // GET ALL REGISTRATIONS (every student, every event)
-// GET /api/admin/registrations?adminId=...
+// GET /api/admin/registrations
 // =====================================
 router.get("/registrations", async (req, res) => {
 
     try {
-
-        const check = await requireAdmin(req.query.adminId);
-
-        if (!check.ok) {
-            return res.status(check.status).json({ message: check.message });
-        }
 
         const registrations = await Registration.find()
             .populate("userId", "name email")
@@ -134,17 +97,10 @@ router.get("/registrations", async (req, res) => {
 // =====================================
 // DELETE ANY USER
 // DELETE /api/admin/users/:id
-// body: { adminId }
 // =====================================
 router.delete("/users/:id", async (req, res) => {
 
     try {
-
-        const check = await requireAdmin(req.body.adminId);
-
-        if (!check.ok) {
-            return res.status(check.status).json({ message: check.message });
-        }
 
         await User.findByIdAndDelete(req.params.id);
 
@@ -170,17 +126,10 @@ router.delete("/users/:id", async (req, res) => {
 // =====================================
 // DELETE ANY EVENT (regardless of host)
 // DELETE /api/admin/events/:id
-// body: { adminId }
 // =====================================
 router.delete("/events/:id", async (req, res) => {
 
     try {
-
-        const check = await requireAdmin(req.body.adminId);
-
-        if (!check.ok) {
-            return res.status(check.status).json({ message: check.message });
-        }
 
         await Event.findByIdAndDelete(req.params.id);
 
@@ -203,17 +152,10 @@ router.delete("/events/:id", async (req, res) => {
 // =====================================
 // DELETE ANY REGISTRATION
 // DELETE /api/admin/registrations/:id
-// body: { adminId }
 // =====================================
 router.delete("/registrations/:id", async (req, res) => {
 
     try {
-
-        const check = await requireAdmin(req.body.adminId);
-
-        if (!check.ok) {
-            return res.status(check.status).json({ message: check.message });
-        }
 
         await Registration.findByIdAndDelete(req.params.id);
 
