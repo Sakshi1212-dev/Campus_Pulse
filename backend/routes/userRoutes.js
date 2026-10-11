@@ -98,7 +98,12 @@ router.post("/signup", signupValidation, handleValidation, async (req, res) => {
 
             password: hashedPassword,
 
-            role: role === "host" ? "host" : "student",
+            // SECURITY: the role is NEVER taken from the request. Everyone who
+            // signs up publicly is a student. Choosing "Host" on the form only
+            // files a request that an admin has to approve.
+            role: "student",
+
+            hostRequestStatus: role === "host" ? "pending" : "none",
 
             college,
 
@@ -119,6 +124,7 @@ router.post("/signup", signupValidation, handleValidation, async (req, res) => {
             name: savedUser.name,
             email: savedUser.email,
             role: savedUser.role,
+            hostRequestStatus: savedUser.hostRequestStatus,
             college: savedUser.college,
             course: savedUser.course,
             skills: savedUser.skills
@@ -228,6 +234,8 @@ router.post("/login", loginValidation, handleValidation, async (req, res) => {
 
             role: user.role,
 
+            hostRequestStatus: user.hostRequestStatus,
+
             college: user.college,
 
             course: user.course,
@@ -311,6 +319,7 @@ router.put("/:id", verifyToken, async (req, res) => {
             name: updatedUser.name,
             email: updatedUser.email,
             role: updatedUser.role,
+            hostRequestStatus: updatedUser.hostRequestStatus,
             college: updatedUser.college,
             course: updatedUser.course,
             skills: updatedUser.skills,

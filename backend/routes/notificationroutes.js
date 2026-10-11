@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
+const mongoose = require("mongoose");
+
 const Notification = require("../models/Notification");
+const { verifyToken } = require("../middleware/auth");
 const Registration = require("../models/Registration");
 const Event = require("../models/Event");
 
@@ -16,9 +19,16 @@ const Event = require("../models/Event");
 // no separate cron job needed, since this runs every time
 // the frontend polls (every ~20s while the app is open).
 
-router.get("/:userId", async (req, res) => {
+router.get("/:userId", verifyToken, async (req, res) => {
 
     try {
+
+        // You can only ever read your own notifications.
+        if (req.params.userId !== req.user.userId) {
+            return res.status(403).json({
+                message: "You can only view your own notifications"
+            });
+        }
 
         await generateDeadlineReminders(req.params.userId);
         await generateEventStartedNotifications(req.params.userId);
@@ -34,8 +44,7 @@ router.get("/:userId", async (req, res) => {
         console.error("GET NOTIFICATIONS ERROR:", error);
 
         res.status(500).json({
-            message: "Failed to fetch notifications",
-            error: error.message
+            message: "Something went wrong"
         });
 
     }
@@ -148,12 +157,18 @@ async function generateEventStartedNotifications(userId) {
 // MARK ONE NOTIFICATION AS READ
 // PUT /api/notifications/:id/read
 // =====================================
-router.put("/:id/read", async (req, res) => {
+router.put("/:id/read", verifyToken, async (req, res) => {
 
     try {
 
-        const notification = await Notification.findByIdAndUpdate(
-            req.params.id,
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid notification ID" });
+        }
+
+        // Matching on userId as well means a notification that
+        // belongs to someone else is simply "not found" for you.
+        const notification = await Notification.findOneAndUpdate(
+            { _id: req.params.id, userId: req.user.userId },
             { isRead: true },
             { new: true }
         );
@@ -169,8 +184,7 @@ router.put("/:id/read", async (req, res) => {
         console.error("MARK NOTIFICATION READ ERROR:", error);
 
         res.status(500).json({
-            message: "Failed to update notification",
-            error: error.message
+            message: "Something went wrong"
         });
 
     }
@@ -182,12 +196,18 @@ router.put("/:id/read", async (req, res) => {
 // MARK ALL AS READ FOR A USER
 // PUT /api/notifications/read-all/:userId
 // =====================================
-router.put("/read-all/:userId", async (req, res) => {
+router.put("/read-all/:userId", verifyToken, async (req, res) => {
 
     try {
 
+        if (req.params.userId !== req.user.userId) {
+            return res.status(403).json({
+                message: "You can only update your own notifications"
+            });
+        }
+
         await Notification.updateMany(
-            { userId: req.params.userId, isRead: false },
+            { userId: req.user.userId, isRead: false },
             { isRead: true }
         );
 
@@ -198,8 +218,7 @@ router.put("/read-all/:userId", async (req, res) => {
         console.error("MARK ALL READ ERROR:", error);
 
         res.status(500).json({
-            message: "Failed to update notifications",
-            error: error.message
+            message: "Something went wrong"
         });
 
     }

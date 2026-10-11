@@ -4,6 +4,8 @@ const router = express.Router();
 const User = require("../models/User");
 const Event = require("../models/Event");
 const Registration = require("../models/Registration");
+const mongoose = require("mongoose");
+const Notification = require("../models/Notification");
 const { verifyToken, requireRole } = require("../middleware/auth");
 
 // ==========================================
@@ -171,6 +173,98 @@ router.delete("/registrations/:id", async (req, res) => {
     }
 
 });
+
+
+// =====================================
+// HOST REQUESTS
+// =====================================
+//
+// Hosts are not created by public signup. A person who asked for
+// host access at signup has hostRequestStatus "pending", and only an
+// admin (this router is admin-only) can approve or reject it.
+
+// LIST PENDING HOST REQUESTS
+// GET /api/admin/host-requests
+router.get("/host-requests", async (req, res) => {
+
+    try {
+
+        const pending = await User.find({ hostRequestStatus: "pending", role: "student" })
+            .select("-password")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(pending);
+
+    } catch (error) {
+
+        console.error("LIST HOST REQUESTS ERROR:", error);
+
+        res.status(500).json({ message: "Something went wrong" });
+
+    }
+
+});
+
+
+// APPROVE OR REJECT ONE REQUEST
+// PUT /api/admin/host-requests/:id/approve
+// PUT /api/admin/host-requests/:id/reject
+async function decideHostRequest(req, res, approve) {
+
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        // The filter means only a student with a PENDING request can be
+        // changed — an admin or an existing host can't be hit by mistake.
+        const user = await User.findOneAndUpdate(
+            { _id: req.params.id, role: "student", hostRequestStatus: "pending" },
+            approve
+                ? { role: "host", hostRequestStatus: "approved" }
+                : { hostRequestStatus: "rejected" },
+            { new: true }
+        ).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "No pending host request found for this user" });
+        }
+
+        try {
+
+            await Notification.create({
+                userId: user._id,
+                type: approve ? "host_request_approved" : "host_request_rejected",
+                message: approve
+                    ? "🎉 Your request for Host access was approved. You can now create events."
+                    : "Your request for Host access was not approved."
+            });
+
+        } catch (notifyError) {
+
+            console.error("Failed to notify user about host request:", notifyError);
+
+        }
+
+        res.status(200).json({
+            message: approve ? "Host request approved" : "Host request rejected",
+            user
+        });
+
+    } catch (error) {
+
+        console.error("DECIDE HOST REQUEST ERROR:", error);
+
+        res.status(500).json({ message: "Something went wrong" });
+
+    }
+
+}
+
+router.put("/host-requests/:id/approve", (req, res) => decideHostRequest(req, res, true));
+
+router.put("/host-requests/:id/reject", (req, res) => decideHostRequest(req, res, false));
 
 
 module.exports = router;

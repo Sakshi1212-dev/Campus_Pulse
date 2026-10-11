@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 
 const Event = require("../models/Event");
 const User = require("../models/User");
@@ -14,9 +15,43 @@ router.get("/", async (req, res) => {
 
     try {
 
-        const events = await Event.find().sort({ createdAt: -1 });
+        // Cancelled events (deleted by a host after students had
+        // already registered) and completed events (their date
+        // has passed) are both hidden from the normal public
+        // list — they still exist in the database so
+        // registration/attendance history stays intact.
+        const events = await Event.find({
+            status: { $in: ["active", "full"] }
+        }).sort({ createdAt: -1 }).lean();
 
-        res.status(200).json(events);
+        // One grouped query for every event's registration count,
+        // instead of a separate database call per event.
+        const counts = await Registration.aggregate([
+            {
+                $match: {
+                    eventId: { $in: events.map(event => event._id) }
+                }
+            },
+            {
+                $group: {
+                    _id: "$eventId",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const countByEventId = {};
+
+        counts.forEach(entry => {
+            countByEventId[entry._id.toString()] = entry.count;
+        });
+
+        const eventsWithCounts = events.map(event => ({
+            ...event,
+            registeredCount: countByEventId[event._id.toString()] || 0
+        }));
+
+        res.status(200).json(eventsWithCounts);
 
     } catch (error) {
 
@@ -157,8 +192,18 @@ router.delete("/:id", verifyToken, requireRole("host"), async (req, res) => {
 
     try {
 
+        // Reject a malformed ID before it ever reaches the
+        // database, with a clean 400 instead of a raw 500.
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid event ID"
+            });
+
+        }
+
         // The requester is whoever the verified token says —
-        // not whatever userId the request body claims.
+        // never whatever the request body claims.
         const userId = req.user.userId;
 
         const event =
@@ -170,24 +215,46 @@ router.delete("/:id", verifyToken, requireRole("host"), async (req, res) => {
             });
         }
 
-        // Only event owner can delete
+        // Only the host who created THIS event can delete it —
+        // requireRole("host") above already blocks students;
+        // this additionally blocks any other host.
         if (
             event.createdBy.toString() !==
             userId.toString()
         ) {
             return res.status(403).json({
-                message: "You can delete only your own events"
+                message: "You can only delete your own events"
             });
         }
 
-        await Event.findByIdAndDelete(req.params.id);
-
-        await Registration.deleteMany({
+        const registrationCount = await Registration.countDocuments({
             eventId: req.params.id
         });
 
+        if (registrationCount === 0) {
+
+            // No one registered yet — safe to remove entirely.
+            await Event.findByIdAndDelete(req.params.id);
+
+            return res.status(200).json({
+                message: "Event deleted successfully"
+            });
+
+        }
+
+        // Students have already registered — cancel instead of
+        // hard-deleting, so their registration/attendance/
+        // certificate history isn't destroyed along with it.
+        // updateOne (not event.save()) only touches this one
+        // field, so it can't be blocked by an unrelated
+        // validation issue elsewhere on the document.
+        await Event.updateOne(
+            { _id: req.params.id },
+            { $set: { status: "cancelled" } }
+        );
+
         res.status(200).json({
-            message: "Event deleted successfully"
+            message: `Event cancelled (${registrationCount} existing registration${registrationCount === 1 ? "" : "s"} preserved)`
         });
 
     } catch (error) {
@@ -195,7 +262,7 @@ router.delete("/:id", verifyToken, requireRole("host"), async (req, res) => {
         console.log("DELETE EVENT ERROR:", error);
 
         res.status(500).json({
-            message: "Failed to delete event",
+            message: "Something went wrong",
             error: error.message
         });
 

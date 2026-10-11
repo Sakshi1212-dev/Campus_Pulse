@@ -38,6 +38,16 @@ const userSchema = new mongoose.Schema(
         skills: {
             type: [String],
             default: []
+        },
+
+        // Public signup can NEVER create a host. A person who ticks
+        // "Host" at signup becomes a normal student with
+        // hostRequestStatus "pending"; only an admin can approve the
+        // request, which is what changes role to "host".
+        hostRequestStatus: {
+            type: String,
+            enum: ["none", "pending", "approved", "rejected"],
+            default: "none"
         }
     },
     {

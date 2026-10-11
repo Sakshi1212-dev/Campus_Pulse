@@ -17,7 +17,15 @@ const registrationSchema = new mongoose.Schema(
         status: {
             type: String,
             default: "registered"
-        }
+        },
+
+        // Details from the registration form. The frontend was already
+        // sending these, but they were silently dropped because the
+        // schema had no fields for them.
+        name: { type: String, trim: true, default: "" },
+        branch: { type: String, trim: true, default: "" },
+        year: { type: String, trim: true, default: "" },
+        email: { type: String, trim: true, default: "" }
     },
     {
         timestamps: true

@@ -36,7 +36,11 @@ router.get("/:userId", async (req, res) => {
             return res.status(200).json([]);
         }
 
-        const events = await Event.find();
+        // Same rule as the main events list: don't recommend
+        // something that's already over or was cancelled.
+        const events = await Event.find({
+            status: { $in: ["active", "full"] }
+        });
 
         if (events.length === 0) {
             return res.status(200).json([]);
