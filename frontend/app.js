@@ -85,6 +85,41 @@ pageButtons.forEach(button => {
 
 
 // ==========================================
+// MARK ALL NOTIFICATIONS READ WHEN OPENING
+// THE NOTIFICATIONS PAGE (badge -> 0, but the
+// list still shows everything that ever arrived)
+// ==========================================
+
+document.querySelectorAll('[data-page="notifications"]').forEach(button => {
+
+    button.addEventListener("click", async function () {
+
+        const currentUser = getCurrentUser();
+
+        if (!currentUser) return;
+
+        try {
+
+            await authFetch(
+                `http://localhost:5000/api/notifications/read-all/${currentUser._id}`,
+                { method: "PUT" }
+            );
+
+            // Refresh list + badge now that everything is read
+            loadNotifications();
+
+        } catch (error) {
+
+            console.error("Mark all read error:", error);
+
+        }
+
+    });
+
+});
+
+
+// ==========================================
 // 2. SEARCH EVENTS
 // ==========================================
 
@@ -217,16 +252,14 @@ if (eventForm) {
            description: formData.get("description"),
            venue: formData.get("venue"),
            date: formData.get("date"),
-           capacity: Number(formData.get("capacity")),
-
-           userId: currentUser._id
+           capacity: Number(formData.get("capacity"))
         };
 
         console.log("Event being sent:", eventData);
 
         try {
 
-            const response = await fetch("http://localhost:5000/api/events", {
+            const response = await fetch("http://localhost:5000/api/events", authHeaders({
 
                 method: "POST",
 
@@ -236,7 +269,7 @@ if (eventForm) {
 
                 body: JSON.stringify(eventData)
 
-            });
+            }));
 
             const data = await response.json();
 
@@ -312,22 +345,58 @@ const categories =
     document.querySelectorAll(".category");
 
 
+// The labels shown on the Popular Categories cards ("Technical",
+// "Workshops") don't always match the exact category value events
+// are saved with ("Hackathon", "Workshop"). This maps display
+// label -> actual stored category, so the filter below matches
+// real events. If you add new categories on the event-creation
+// form, add a matching entry here too.
+const categoryLabelMap = {
+    "Technical": "Hackathon",
+    "Cultural": "Cultural",
+    "Sports": "Sports",
+    "Workshops": "Workshop",
+    "Career": "Career"
+};
+
+
 categories.forEach(category => {
 
     category.addEventListener("click", function () {
 
-        const categoryName =
-            this.innerText
-                .split("\n")[0]
-                .trim();
+        // Read the label from the <strong> tag specifically,
+        // not the whole button text (which also contains the
+        // emoji on its own line and would give the wrong value).
+        const labelElement = this.querySelector("strong");
 
+        const categoryLabel =
+            labelElement ? labelElement.innerText.trim() : "";
 
-        showToast(
-            `Showing ${categoryName} events`
-        );
+        const searchTerm =
+            categoryLabelMap[categoryLabel] || categoryLabel;
 
 
         showPage("events");
+
+
+        // Reuse the existing Events-page search box to do the
+        // actual filtering, so there's only one filtering logic
+        // to maintain. Setting .value alone doesn't fire the
+        // "input" listener, so we dispatch it manually.
+        if (searchInput) {
+
+            searchInput.value = searchTerm;
+
+            searchInput.dispatchEvent(
+                new Event("input", { bubbles: true })
+            );
+
+        }
+
+
+        showToast(
+            `Showing ${categoryLabel} events`
+        );
 
     });
 
@@ -363,6 +432,165 @@ function getCurrentUser() {
     }
 
 }
+
+// The JWT issued at login/signup, sent as
+// "Authorization: Bearer <token>" on protected requests.
+function getToken() {
+
+    return localStorage.getItem("campusToken");
+
+}
+
+// Small helper so protected fetch calls don't repeat this
+// header block everywhere. Usage:
+//   fetch(url, authHeaders({ method: "POST", body: ... }))
+function authHeaders(options = {}) {
+
+    return {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${getToken()}`
+        }
+    };
+
+}
+
+
+// ==========================================
+// AUTHENTICATED FETCH WRAPPER
+// ==========================================
+//
+// Use this instead of a plain fetch() for any request that
+// needs the logged-in user's identity. It automatically:
+//   1. attaches the saved JWT as an Authorization header
+//   2. detects a 401 (no token / expired token / invalid
+//      token) coming back from the backend
+//   3. on 401, clears the stored session and sends the
+//      person back to the login screen with a clear message
+//      — instead of leaving the app in a broken half-logged-in
+//      state.
+//
+// Usage is the same as fetch():
+//   const res = await authFetch(url);
+//   const res = await authFetch(url, { method: "POST", body: ... });
+async function authFetch(url, options = {}) {
+
+    const response = await fetch(url, authHeaders(options));
+
+    if (response.status === 401) {
+
+        endSession("Your session has expired. Please login again.");
+
+    }
+
+    return response;
+
+}
+
+
+// ==========================================
+// SESSION HELPERS (login restore / logout)
+// ==========================================
+
+// Clears any saved session and shows the login screen. Used
+// both by the Logout button and automatically by authFetch()
+// whenever the backend says the token is no longer valid.
+function endSession(message) {
+
+    localStorage.removeItem("campusToken");
+    localStorage.removeItem("campusUser");
+
+    const authScreenEl = document.getElementById("authScreen");
+
+    if (authScreenEl) {
+        authScreenEl.style.display = "flex";
+    }
+
+    if (message) {
+        alert(message);
+    }
+
+}
+
+
+// Runs once when the page loads (including on refresh). This
+// is the single place that decides: does the dashboard show,
+// or does the login screen show?
+//
+// Step 1 (instant, no network needed): if a user + token are
+// already saved from a previous login, show the dashboard
+// right away using that saved data — this is why refreshing
+// doesn't bounce you back to login anymore.
+//
+// Step 2 (in the background): ask the backend "is this token
+// actually still valid?" via GET /api/auth/me. A token can
+// look fine in localStorage but still be expired or revoked,
+// so we don't blindly trust it forever — if the backend says
+// no (401), authFetch() above automatically logs the person
+// out and shows the login screen with an explanation.
+async function initializeApp() {
+
+    const savedUser = getCurrentUser();
+    const savedToken = getToken();
+
+    const authScreenEl = document.getElementById("authScreen");
+
+    if (!savedUser || !savedToken) {
+
+        // Nothing saved — this is a normal logged-out visit.
+        if (authScreenEl) authScreenEl.style.display = "flex";
+
+        return;
+
+    }
+
+    // We have something saved — restore the dashboard
+    // immediately so the page doesn't flash the login screen.
+    if (authScreenEl) authScreenEl.style.display = "none";
+
+    showUserDashboard(savedUser);
+
+    applyRolePermissions();
+
+    // Now quietly confirm with the backend that this token is
+    // still good. If it isn't, authFetch handles logging out.
+    try {
+
+        const response = await authFetch("http://localhost:5000/api/auth/me");
+
+        if (response.ok) {
+
+            const data = await response.json();
+
+            // Keep localStorage in sync with the latest data
+            // from the database (e.g. if skills/role changed).
+            localStorage.setItem("campusUser", JSON.stringify(data.user));
+
+            // The server sends a new token only when this person's role
+            // changed since they logged in (e.g. a host request was
+            // approved). Save it and reload once so the whole app starts
+            // up with the new role and permissions.
+            if (data.token) {
+                localStorage.setItem("campusToken", data.token);
+                window.location.reload();
+                return;
+            }
+
+        }
+
+    } catch (error) {
+
+        console.error("Session check failed:", error);
+
+    }
+
+}
+
+// Run it now, as soon as the script loads — this is what
+// makes a refresh restore the dashboard instead of dropping
+// back to the login screen.
+initializeApp();
 
 
 // ==========================================
@@ -403,13 +631,27 @@ function createEventCard(event, currentUser, isHost, matchPercent, matchReason) 
                     Delete
                 </button>
            </div>`
-        : `<button
+        : (() => {
+
+            const isFull = event.status === "full";
+
+            const disabled = isHost || isFull;
+
+            const label = isHost
+                ? "Hosts can't register"
+                : isFull
+                    ? "Event Full"
+                    : "Register Now";
+
+            return `<button
                 class="register-btn event-register-btn"
                 data-event-id="${event._id}"
-                ${isHost ? "disabled style=\"opacity:0.5;cursor:not-allowed;\"" : ""}
+                ${disabled ? "disabled style=\"opacity:0.5;cursor:not-allowed;\"" : ""}
            >
-                ${isHost ? "Hosts can't register" : "Register Now"}
+                ${label}
            </button>`;
+
+        })();
 
     // matchPercent is only passed in for recommended events.
     // Tiered emoji: >=80% = 🔥, >=50% = ⭐, else 💡
@@ -429,6 +671,45 @@ function createEventCard(event, currentUser, isHost, matchPercent, matchReason) 
 
     }
 
+    // registeredCount only comes back from the main /api/events
+    // list (the Events page). Recommended/AI-matched cards don't
+    // carry it, so this whole block is skipped there rather than
+    // showing a misleading "0 registered".
+    let capacityHTML = "";
+
+    if (typeof event.registeredCount === "number") {
+
+        const seatsLeft =
+            Math.max(0, event.capacity - event.registeredCount);
+
+        capacityHTML = `
+            <div class="event-detail">
+                <span>🎟️</span>
+                <span>
+                    Capacity: ${event.capacity} &nbsp;•&nbsp;
+                    Registered: ${event.registeredCount} &nbsp;•&nbsp;
+                    Seats left: ${seatsLeft}
+                </span>
+            </div>
+        `;
+
+    } else {
+
+        // Fallback for cards that don't have a live count
+        capacityHTML = `
+            <div class="event-detail">
+                <span>👥</span>
+                <span>Capacity: ${event.capacity}</span>
+            </div>
+        `;
+
+    }
+
+    const fullBadgeHTML =
+        event.status === "full"
+            ? `<span class="event-full-badge">🔴 EVENT FULL</span>`
+            : "";
+
     eventCard.innerHTML = `
 
         <div class="event-card-top">
@@ -436,6 +717,8 @@ function createEventCard(event, currentUser, isHost, matchPercent, matchReason) 
             <span class="event-category">
                 ${event.category}
             </span>
+
+            ${fullBadgeHTML}
 
             ${matchBadgeHTML}
 
@@ -469,12 +752,7 @@ function createEventCard(event, currentUser, isHost, matchPercent, matchReason) 
                 </div>
 
 
-                <div class="event-detail">
-                    <span>👥</span>
-                    <span>
-                        Capacity: ${event.capacity}
-                    </span>
-                </div>
+                ${capacityHTML}
 
             </div>
 
@@ -630,6 +908,22 @@ if (typeof io === "function") {
 
     });
 
+    socket.on("eventStarted", (data) => {
+
+        console.log("Real-time: event started", data);
+
+        showToast(`🎉 "${data.title}" has started!`);
+
+    });
+
+    socket.on("eventEnded", (data) => {
+
+        console.log("Real-time: event ended", data);
+
+        showToast(`🏁 "${data.title}" has ended.`);
+
+    });
+
     socket.on("connect_error", (error) => {
         console.warn("Socket connection failed:", error.message);
     });
@@ -641,6 +935,426 @@ if (typeof io === "function") {
     );
 
 }
+
+
+// ==========================================
+// PULSE CALENDAR
+// ==========================================
+//
+// Two views working together:
+//   1. "This week" strip — always shows the real current week,
+//      with small colored dots per event category and glows
+//      today.
+//   2. Month grid — browsable via prev/next. Each day's
+//      background tints toward whichever category is happening
+//      that day, and gets stronger + a count badge the more
+//      events land on it. Today gently pulses.
+// Clicking any day (in either view) lists that day's events in
+// the side panel, color-coded to match.
+
+let calendarViewDate = new Date(); // which month the grid shows
+let calendarSelectedDateKey = null; // "YYYY-M-D" of the clicked day
+let calendarEventsCache = [];
+
+// Matches the category options on your event-creation form.
+// Add an entry here if you add a new category there.
+const calendarCategoryColors = {
+    "Hackathon": "#D85A30",
+    "Workshop": "#1D9E75",
+    "Cultural": "#D4537E",
+    "Sports": "#378ADD",
+    "Career": "#7F77DD"
+};
+
+function calendarColorFor(category) {
+    return calendarCategoryColors[category] || "#7b8297";
+}
+
+function dateKey(date) {
+
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+}
+
+
+function calendarEventsOnDate(date) {
+
+    return calendarEventsCache.filter(event => {
+
+        const eventDate = new Date(event.date);
+
+        return (
+            eventDate.getFullYear() === date.getFullYear() &&
+            eventDate.getMonth() === date.getMonth() &&
+            eventDate.getDate() === date.getDate()
+        );
+
+    });
+
+}
+
+
+async function loadCalendarEvents() {
+
+    try {
+
+        const response = await fetch("http://localhost:5000/api/events");
+
+        calendarEventsCache = await response.json();
+
+    } catch (error) {
+
+        console.error("Error loading events for calendar:", error);
+
+        calendarEventsCache = [];
+
+    }
+
+}
+
+
+function renderCalendarWeekStrip() {
+
+    const strip = document.getElementById("calendarWeekStrip");
+
+    if (!strip) return;
+
+    const today = new Date();
+
+    // Monday of the current real-world week, regardless of
+    // which month the grid below is browsing.
+    const mondayOffset = (today.getDay() + 6) % 7;
+
+    const monday = new Date(today);
+
+    monday.setDate(today.getDate() - mondayOffset);
+
+    strip.innerHTML = "";
+
+    for (let i = 0; i < 7; i++) {
+
+        const day = new Date(monday);
+
+        day.setDate(monday.getDate() + i);
+
+        const dayEvents = calendarEventsOnDate(day);
+
+        const categories = [
+            ...new Set(dayEvents.map(event => event.category))
+        ];
+
+        const isToday = day.toDateString() === today.toDateString();
+
+        const isSelected = dateKey(day) === calendarSelectedDateKey;
+
+        const card = document.createElement("div");
+
+        card.className = "calendar-week-card";
+
+        if (isToday) card.classList.add("today");
+        if (isSelected) card.classList.add("selected");
+
+        const dotsHTML = categories
+            .slice(0, 5)
+            .map(cat => `<span style="background:${calendarColorFor(cat)};"></span>`)
+            .join("");
+
+        card.innerHTML = `
+            <p class="calendar-week-daylabel">
+                ${day.toLocaleDateString(undefined, { weekday: "short" })}
+            </p>
+            <p class="calendar-week-num">${day.getDate()}</p>
+            <div class="calendar-week-dots">${dotsHTML}</div>
+        `;
+
+        card.addEventListener("click", () => {
+
+            calendarSelectedDateKey = dateKey(day);
+
+            // If this day belongs to a different month than the
+            // grid is currently showing, jump the grid there too.
+            if (
+                day.getMonth() !== calendarViewDate.getMonth() ||
+                day.getFullYear() !== calendarViewDate.getFullYear()
+            ) {
+
+                calendarViewDate = new Date(day);
+
+            }
+
+            renderCalendarWeekStrip();
+
+            renderCalendarGrid();
+
+            showCalendarDayEvents(day, dayEvents);
+
+        });
+
+        strip.appendChild(card);
+
+    }
+
+}
+
+
+function renderCalendarGrid() {
+
+    const grid = document.getElementById("calendarGrid");
+
+    const monthLabel = document.getElementById("calendarMonthLabel");
+
+    if (!grid || !monthLabel) return;
+
+    const year = calendarViewDate.getFullYear();
+    const month = calendarViewDate.getMonth(); // 0-11
+
+    monthLabel.innerText =
+        calendarViewDate.toLocaleDateString(undefined, {
+            month: "long",
+            year: "numeric"
+        });
+
+    // Group this month's events by day-of-month so we don't
+    // re-scan the whole event list for every single day cell.
+    const eventsByDay = {};
+
+    calendarEventsCache.forEach(event => {
+
+        const eventDate = new Date(event.date);
+
+        if (
+            eventDate.getFullYear() === year &&
+            eventDate.getMonth() === month
+        ) {
+
+            const day = eventDate.getDate();
+
+            if (!eventsByDay[day]) eventsByDay[day] = [];
+
+            eventsByDay[day].push(event);
+
+        }
+
+    });
+
+    // JS getDay(): 0=Sunday..6=Saturday. Our grid starts on
+    // Monday, so shift it to 0=Monday..6=Sunday.
+    const firstOfMonth = new Date(year, month, 1);
+
+    const firstWeekday = (firstOfMonth.getDay() + 6) % 7;
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const today = new Date();
+
+    grid.innerHTML = "";
+
+    // Empty leading cells so day 1 lands on the right weekday
+    for (let i = 0; i < firstWeekday; i++) {
+
+        const emptyCell = document.createElement("div");
+
+        emptyCell.className = "calendar-day empty";
+
+        grid.appendChild(emptyCell);
+
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+
+        const cellDate = new Date(year, month, day);
+
+        const cell = document.createElement("div");
+
+        cell.className = "calendar-day";
+
+        cell.style.position = "relative";
+
+        const isToday =
+            cellDate.toDateString() === today.toDateString();
+
+        if (isToday) {
+            cell.classList.add("today");
+            cell.classList.add("pulse-today");
+        }
+
+        if (dateKey(cellDate) === calendarSelectedDateKey) {
+            cell.classList.add("selected");
+        }
+
+        cell.innerText = day;
+
+        const dayEvents = eventsByDay[day] || [];
+
+        if (dayEvents.length > 0) {
+
+            // Tint toward the day's first category — stronger,
+            // more saturated the more events land on that day,
+            // so busier days visibly "glow" brighter, not just
+            // a faint highlight.
+            const color = calendarColorFor(dayEvents[0].category);
+
+            const alpha = dayEvents.length >= 3 ? "e6" :
+                          dayEvents.length === 2 ? "b3" : "40";
+
+            cell.style.background = color + alpha;
+
+            cell.dataset.intensity =
+                dayEvents.length >= 3 ? "3" :
+                dayEvents.length === 2 ? "2" : "1";
+
+            if (dayEvents.length >= 2) {
+
+                const badge = document.createElement("span");
+
+                badge.className = "calendar-count-badge";
+
+                badge.style.color = color;
+
+                badge.innerText = dayEvents.length;
+
+                cell.appendChild(badge);
+
+            }
+
+        }
+
+        cell.addEventListener("click", () => {
+
+            calendarSelectedDateKey = dateKey(cellDate);
+
+            renderCalendarGrid(); // redraw so "selected" highlight updates
+
+            renderCalendarWeekStrip(); // keep week strip's selection in sync
+
+            showCalendarDayEvents(cellDate, dayEvents);
+
+        });
+
+        grid.appendChild(cell);
+
+    }
+
+}
+
+
+function showCalendarDayEvents(date, events) {
+
+    const titleEl = document.getElementById("calendarSelectedDate");
+
+    const listEl = document.getElementById("calendarDayEvents");
+
+    if (!titleEl || !listEl) return;
+
+    titleEl.innerText = date.toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+    });
+
+    if (events.length === 0) {
+
+        listEl.innerHTML = `
+            <div class="skills-empty">
+                <span>🗓️</span>
+                <p>No events on this day.</p>
+            </div>
+        `;
+
+        return;
+
+    }
+
+    listEl.innerHTML = events.map(event => `
+        <div class="calendar-day-event-item">
+            <span class="dot" style="background:${calendarColorFor(event.category)};"></span>
+            <div>
+                <strong>${event.title}</strong>
+                <small>
+                    ${event.category} • 📍 ${event.venue} •
+                    ${new Date(event.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </small>
+            </div>
+        </div>
+    `).join("");
+
+}
+
+
+async function openCalendarPage() {
+
+    calendarViewDate = new Date(); // always open on the current month
+
+    calendarSelectedDateKey = null;
+
+    await loadCalendarEvents();
+
+    renderCalendarWeekStrip();
+
+    renderCalendarGrid();
+
+    // Reset the side panel to its default state
+    const titleEl = document.getElementById("calendarSelectedDate");
+
+    const listEl = document.getElementById("calendarDayEvents");
+
+    if (titleEl) titleEl.innerText = "Select a date";
+
+    if (listEl) {
+
+        listEl.innerHTML = `
+            <div class="skills-empty">
+                <span>🗓️</span>
+                <p>Click any date to see what's on.</p>
+            </div>
+        `;
+
+    }
+
+}
+
+
+// Open (and refresh) the calendar every time its nav button
+// is clicked, so newly created events always show up
+document.querySelectorAll('[data-page="calendar"]').forEach(button => {
+
+    button.addEventListener("click", openCalendarPage);
+
+});
+
+
+const calendarPrevBtn = document.getElementById("calendarPrevBtn");
+
+const calendarNextBtn = document.getElementById("calendarNextBtn");
+
+if (calendarPrevBtn) {
+
+    calendarPrevBtn.addEventListener("click", () => {
+
+        calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
+
+        calendarSelectedDateKey = null;
+
+        renderCalendarGrid();
+
+    });
+
+}
+
+if (calendarNextBtn) {
+
+    calendarNextBtn.addEventListener("click", () => {
+
+        calendarViewDate.setMonth(calendarViewDate.getMonth() + 1);
+
+        calendarSelectedDateKey = null;
+
+        renderCalendarGrid();
+
+    });
+
+}
+
 
 
 // ==========================================
@@ -927,13 +1641,36 @@ async function loadMyRegistrations() {
 
     try {
 
-        const response = await fetch(
+        const response = await authFetch(
             `http://localhost:5000/api/registrations/user/${currentUser._id}`
         );
 
-        const registrations = await response.json();
+        const allRegistrations = await response.json();
 
-        console.log("My registrations:", registrations);
+        console.log("My registrations:", allRegistrations);
+
+        // Only keep registrations for events that haven't
+        // happened yet. Checking the event's own `date` directly
+        // (rather than only trusting the backend's `status`
+        // field) means this updates instantly — it doesn't have
+        // to wait for the server's once-a-minute background job
+        // to flip the event to "completed" first.
+        const now = new Date();
+
+        const registrations = allRegistrations.filter(reg => {
+
+            const event = reg.eventId;
+
+            if (!event) return false;
+
+            const isPastDate = new Date(event.date) < now;
+
+            const isCompletedOrCancelled =
+                event.status === "completed" || event.status === "cancelled";
+
+            return !isPastDate && !isCompletedOrCancelled;
+
+        });
 
         // Update the "My Registrations" stat card on Home
         if (statCount) {
@@ -953,7 +1690,7 @@ async function loadMyRegistrations() {
         if (registrations.length === 0) {
 
             container.innerHTML =
-                "<p style='color:#7b8297;'>You haven't registered for any events yet.</p>";
+                "<p style='color:#7b8297;'>You haven't registered for any upcoming events.</p>";
 
             return;
         }
@@ -1016,13 +1753,19 @@ async function loadMyRegistrations() {
                     </div>
 
 
-                    <button
-                        class="register-btn cancel-registration-btn"
-                        data-registration-id="${reg._id}"
-                        style="background:#e34267;"
-                    >
-                        Cancel Registration
-                    </button>
+                    ${
+                        (event.status === "completed" || event.status === "cancelled")
+                            ? `<span class="event-full-badge" style="background:#eee; color:#7b8297;">
+                                   ${event.status === "completed" ? "✅ Event completed" : "🚫 Event cancelled by host"}
+                               </span>`
+                            : `<button
+                                    class="register-btn cancel-registration-btn"
+                                    data-registration-id="${reg._id}"
+                                    style="background:#e34267;"
+                               >
+                                    Cancel Registration
+                               </button>`
+                    }
 
                 </div>
 
@@ -1076,7 +1819,7 @@ async function cancelRegistration(registrationId) {
 
     try {
 
-        const response = await fetch(
+        const response = await authFetch(
             `http://localhost:5000/api/registrations/${registrationId}`,
             {
                 method: "DELETE"
@@ -1284,15 +2027,19 @@ signupForm.addEventListener("submit", async function (e) {
         if (response.ok) {
 
             alert(
-                "Account created successfully! 🎉"
+                data.user && data.user.hostRequestStatus === "pending"
+                    ? "Account created as a student! 🎉\n\nYour request for Host access was sent to an administrator. You will get a notification when it is approved."
+                    : "Account created successfully! 🎉"
             );
 
 
-            // Save logged-in user
+            // Save logged-in user + auth token
             localStorage.setItem(
                 "campusUser",
                 JSON.stringify(data.user)
             );
+
+            localStorage.setItem("campusToken", data.token);
 
 
             // Hide login/signup
@@ -1345,6 +2092,22 @@ signupForm.addEventListener("submit", async function (e) {
 // ==========================================
 // SHOW USER DASHBOARD
 // ==========================================
+
+// What to show as the person's role. A student whose host request is
+// still waiting for an admin sees that, so they know it was received.
+function roleText(user) {
+
+    if (user.role === "admin") return "Admin";
+
+    if (user.role === "host") return "Host";
+
+    if (user.hostRequestStatus === "pending") return "Student • Host request pending";
+
+    if (user.hostRequestStatus === "rejected") return "Student • Host request declined";
+
+    return "Student";
+
+}
 
 function showUserDashboard(user) {
 
@@ -1411,11 +2174,11 @@ function showUserDashboard(user) {
 
     if (roleLabel) {
         roleLabel.innerText =
-            user.role === "host" ? "Host" : "Student";
+            roleText(user);
     }
 
     const roleDisplay =
-        user.role === "host" ? "Host" : "Student";
+        roleText(user);
 
     if (profileRole) {
         profileRole.innerText = roleDisplay;
@@ -1591,11 +2354,13 @@ if (loginForm) {
 
             if (response.ok) {
 
-                // Save logged-in user
+                // Save logged-in user + auth token
                 localStorage.setItem(
                     "campusUser",
                     JSON.stringify(data.user)
                 );
+
+                localStorage.setItem("campusToken", data.token);
 
                 alert("Login successful! 🎉");
 
@@ -1675,24 +2440,24 @@ async function deleteEvent(eventId) {
 
         const response = await fetch(
             `http://localhost:5000/api/events/${eventId}`,
-            {
+            authHeaders({
                 method: "DELETE",
 
                 headers: {
                     "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                    userId: currentUser._id
-                })
-            }
+                }
+            })
         );
 
         const data = await response.json();
 
         if (response.ok) {
 
-            showToast("Event deleted successfully! 🗑️");
+            // The backend decides whether this was a hard delete
+            // or a cancellation (if students had already
+            // registered) — show whichever message it actually
+            // sent instead of assuming.
+            showToast(data.message || "Event removed");
 
             loadEvents();
 
@@ -1737,13 +2502,12 @@ async function messageAttendees(eventId) {
 
     try {
 
-        const response = await fetch(
+        const response = await authFetch(
             `http://localhost:5000/api/events/${eventId}/message`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userId: currentUser._id,
                     message: message.trim()
                 })
             }
@@ -1867,8 +2631,6 @@ if (registrationForm) {
 
             eventId: window.selectedEventId,
 
-            userId: currentUser._id,
-
             name: document.getElementById("regName").value,
 
             branch: document.getElementById("regBranch").value,
@@ -1881,7 +2643,7 @@ if (registrationForm) {
 
         try {
 
-            const response = await fetch(
+            const response = await authFetch(
                 "http://localhost:5000/api/registrations",
                 {
                     method: "POST",
@@ -2026,7 +2788,7 @@ if (editProfileForm) {
 
             const response = await fetch(
                 `http://localhost:5000/api/users/${currentUser._id}`,
-                {
+                authHeaders({
                     method: "PUT",
 
                     headers: {
@@ -2039,7 +2801,7 @@ if (editProfileForm) {
                         course,
                         skills
                     })
-                }
+                })
             );
 
             const data = await response.json();
@@ -2118,7 +2880,7 @@ async function loadNotifications() {
 
     try {
 
-        const response = await fetch(
+        const response = await authFetch(
             `http://localhost:5000/api/notifications/${currentUser._id}`
         );
 
@@ -2208,7 +2970,7 @@ async function markNotificationRead(notificationId) {
 
     try {
 
-        await fetch(
+        await authFetch(
             `http://localhost:5000/api/notifications/${notificationId}/read`,
             { method: "PUT" }
         );
@@ -2848,6 +3610,7 @@ function injectAdminUI() {
                 <button class="admin-tab-btn active" data-admin-tab="users">Users</button>
                 <button class="admin-tab-btn" data-admin-tab="events">Events</button>
                 <button class="admin-tab-btn" data-admin-tab="registrations">Registrations</button>
+                <button class="admin-tab-btn" data-admin-tab="hostrequests">Host Requests</button>
             </div>
 
             <div class="admin-tab-content active" id="admin-tab-users">
@@ -2899,6 +3662,23 @@ function injectAdminUI() {
                             </tr>
                         </thead>
                         <tbody id="adminRegistrationsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-tab-content" id="admin-tab-hostrequests">
+                <div class="admin-table-wrap">
+                    <table class="admin-table" id="adminHostRequestsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>College</th>
+                                <th>Requested On</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminHostRequestsBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -2975,7 +3755,8 @@ async function loadAdminData() {
     await Promise.all([
         loadAdminUsers(currentUser._id),
         loadAdminEvents(currentUser._id),
-        loadAdminRegistrations(currentUser._id)
+        loadAdminRegistrations(currentUser._id),
+        loadAdminHostRequests()
     ]);
 
 }
@@ -2993,7 +3774,8 @@ async function loadAdminUsers(adminId) {
     try {
 
         const response = await fetch(
-            `http://localhost:5000/api/admin/users?adminId=${adminId}`
+            `http://localhost:5000/api/admin/users`,
+            authHeaders()
         );
 
         const users = await response.json();
@@ -3075,11 +3857,10 @@ async function adminDeleteUser(userId) {
 
         const response = await fetch(
             `http://localhost:5000/api/admin/users/${userId}`,
-            {
+            authHeaders({
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ adminId: currentUser._id })
-            }
+                headers: { "Content-Type": "application/json" }
+            })
         );
 
         const data = await response.json();
@@ -3119,7 +3900,8 @@ async function loadAdminEvents(adminId) {
     try {
 
         const response = await fetch(
-            `http://localhost:5000/api/admin/events?adminId=${adminId}`
+            `http://localhost:5000/api/admin/events`,
+            authHeaders()
         );
 
         const events = await response.json();
@@ -3204,11 +3986,10 @@ async function adminDeleteEvent(eventId) {
 
         const response = await fetch(
             `http://localhost:5000/api/admin/events/${eventId}`,
-            {
+            authHeaders({
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ adminId: currentUser._id })
-            }
+                headers: { "Content-Type": "application/json" }
+            })
         );
 
         const data = await response.json();
@@ -3251,7 +4032,8 @@ async function loadAdminRegistrations(adminId) {
     try {
 
         const response = await fetch(
-            `http://localhost:5000/api/admin/registrations?adminId=${adminId}`
+            `http://localhost:5000/api/admin/registrations`,
+            authHeaders()
         );
 
         const registrations = await response.json();
@@ -3338,11 +4120,10 @@ async function adminDeleteRegistration(registrationId) {
 
         const response = await fetch(
             `http://localhost:5000/api/admin/registrations/${registrationId}`,
-            {
+            authHeaders({
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ adminId: currentUser._id })
-            }
+                headers: { "Content-Type": "application/json" }
+            })
         );
 
         const data = await response.json();
@@ -3364,6 +4145,181 @@ async function adminDeleteRegistration(registrationId) {
         console.error("Admin delete registration error:", error);
 
         alert("Could not connect to backend.");
+
+    }
+
+}
+
+// ==========================================
+// LOGOUT
+// ==========================================
+//
+// Clears the saved session (token + user) and drops the
+// person back to the login screen. A full page reload is the
+// simplest reliable way to reset every widget/list back to
+// its logged-out state, rather than manually un-rendering
+// everything the dashboard filled in.
+
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (logoutBtn) {
+
+    logoutBtn.addEventListener("click", function () {
+
+        localStorage.removeItem("campusToken");
+        localStorage.removeItem("campusUser");
+
+        window.location.reload();
+
+    });
+
+}
+
+
+// ==========================================
+// ADMIN: HOST REQUESTS
+// ==========================================
+//
+// Anyone can ask for Host access when they sign up, but they stay a
+// student until an admin approves them here. Rows are built with
+// textContent (not innerHTML) because names and emails are typed by
+// users and must never be run as HTML.
+
+async function loadAdminHostRequests() {
+
+    const tbody = document.getElementById("adminHostRequestsBody");
+
+    if (!tbody) return;
+
+    try {
+
+        const response = await authFetch("/api/admin/host-requests");
+
+        const requests = await response.json();
+
+        const tabButton = document.querySelector('[data-admin-tab="hostrequests"]');
+
+        if (!response.ok) {
+
+            tbody.innerHTML = "";
+
+            const errorRow = document.createElement("tr");
+            errorRow.className = "admin-empty-row";
+            const errorCell = document.createElement("td");
+            errorCell.colSpan = 5;
+            errorCell.textContent = requests.message || "Failed to load host requests";
+            errorRow.appendChild(errorCell);
+            tbody.appendChild(errorRow);
+
+            return;
+
+        }
+
+        if (tabButton) {
+            tabButton.textContent =
+                requests.length > 0 ? `Host Requests (${requests.length})` : "Host Requests";
+        }
+
+        tbody.innerHTML = "";
+
+        if (requests.length === 0) {
+
+            const emptyRow = document.createElement("tr");
+            emptyRow.className = "admin-empty-row";
+            const emptyCell = document.createElement("td");
+            emptyCell.colSpan = 5;
+            emptyCell.textContent = "No pending host requests.";
+            emptyRow.appendChild(emptyCell);
+            tbody.appendChild(emptyRow);
+
+            return;
+
+        }
+
+        requests.forEach(user => {
+
+            const row = document.createElement("tr");
+
+            [
+                user.name,
+                user.email,
+                user.college || "—",
+                new Date(user.createdAt).toLocaleDateString()
+            ].forEach(text => {
+
+                const cell = document.createElement("td");
+                cell.textContent = text;
+                row.appendChild(cell);
+
+            });
+
+            const actionCell = document.createElement("td");
+
+            const approveBtn = document.createElement("button");
+            approveBtn.className = "admin-delete-btn";
+            approveBtn.style.background = "#21b573";
+            approveBtn.style.marginRight = "6px";
+            approveBtn.textContent = "Approve";
+            approveBtn.addEventListener("click", () => decideHostRequest(user._id, "approve"));
+
+            const rejectBtn = document.createElement("button");
+            rejectBtn.className = "admin-delete-btn";
+            rejectBtn.textContent = "Reject";
+            rejectBtn.addEventListener("click", () => decideHostRequest(user._id, "reject"));
+
+            actionCell.appendChild(approveBtn);
+            actionCell.appendChild(rejectBtn);
+            row.appendChild(actionCell);
+
+            tbody.appendChild(row);
+
+        });
+
+    } catch (error) {
+
+        console.error("Error loading host requests:", error);
+
+    }
+
+}
+
+
+async function decideHostRequest(userId, action) {
+
+    const confirmed = confirm(
+        action === "approve"
+            ? "Approve this person as a Host? They will be able to create and manage events."
+            : "Reject this host request?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+
+        const response = await authFetch(
+            `/api/admin/host-requests/${userId}/${action}`,
+            { method: "PUT" }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            showToast(data.message);
+
+            loadAdminData();
+
+        } else {
+
+            alert(data.message || "Something went wrong");
+
+        }
+
+    } catch (error) {
+
+        console.error("Host request decision error:", error);
+
+        alert("Could not connect to the server.");
 
     }
 

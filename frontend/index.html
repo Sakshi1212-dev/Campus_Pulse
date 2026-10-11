@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -149,7 +148,7 @@
                             name="role"
                             value="host"
                         >
-                        Host
+                        Host (needs admin approval)
                     </label>
 
                 </div>
@@ -418,6 +417,11 @@
       <button class="nav-item" data-page="events">
         📅
         <span>Events</span>
+      </button>
+
+      <button class="nav-item" data-page="calendar">
+        🗓️
+        <span>Calendar</span>
       </button>
 
       <button class="nav-item" data-page="registrations">
@@ -864,6 +868,91 @@
           class="event-grid"
           id="allEvents"
         >
+
+        </div>
+
+      </div>
+
+
+      <!-- ================= CALENDAR ================= -->
+
+      <div
+        class="page"
+        id="page-calendar"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <small>
+              PLAN AHEAD
+            </small>
+
+            <h1>
+              Campus Pulse Calendar
+            </h1>
+
+            <p>
+              See the pulse of campus activity — busier days glow brighter.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <p class="calendar-section-label">This week</p>
+
+        <div id="calendarWeekStrip" class="calendar-week-strip"></div>
+
+
+        <p class="calendar-section-label" id="calendarMonthSectionLabel">Month pulse</p>
+
+        <div class="calendar-wrap">
+
+          <div class="calendar-card">
+
+            <div class="calendar-nav">
+
+              <button id="calendarPrevBtn" class="calendar-nav-btn">
+                ←
+              </button>
+
+              <h2 id="calendarMonthLabel"></h2>
+
+              <button id="calendarNextBtn" class="calendar-nav-btn">
+                →
+              </button>
+
+            </div>
+
+            <div class="calendar-weekdays">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
+            </div>
+
+            <div id="calendarGrid" class="calendar-grid"></div>
+
+          </div>
+
+          <div class="calendar-side">
+
+            <h3 id="calendarSelectedDate">Select a date</h3>
+
+            <div id="calendarDayEvents" class="calendar-day-events">
+              <div class="skills-empty">
+                <span>🗓️</span>
+                <p>Click any date with a dot to see what's on.</p>
+              </div>
+            </div>
+
+          </div>
 
         </div>
 

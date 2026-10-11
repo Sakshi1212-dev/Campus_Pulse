@@ -2477,3 +2477,489 @@ nav {
 
     font-style: italic;
 }
+
+/* ==========================================
+   EVENT CALENDAR
+   ========================================== */
+
+.calendar-wrap {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .calendar-wrap {
+        grid-template-columns: 1fr;
+    }
+}
+
+.calendar-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.calendar-nav h2 {
+    font-size: 16px;
+    letter-spacing: 0.3px;
+}
+
+.calendar-nav-btn {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.calendar-nav-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.calendar-day {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--background);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.calendar-day:not(.empty):hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.calendar-day.today {
+    border: 1.5px solid var(--primary);
+    font-weight: 700;
+}
+
+.calendar-day.selected {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.calendar-day .calendar-dot {
+    position: absolute;
+    bottom: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--orange);
+}
+
+.calendar-day.selected .calendar-dot {
+    background: var(--white);
+}
+
+.calendar-side {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+    min-height: 320px;
+}
+
+.calendar-side h3 {
+    font-size: 15px;
+    margin-bottom: 14px;
+}
+
+.calendar-day-event-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.calendar-day-event-item:last-child {
+    border-bottom: none;
+}
+
+.calendar-day-event-item .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.calendar-day-event-item strong {
+    display: block;
+    font-size: 13px;
+}
+
+.calendar-day-event-item small {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+
+/* ==========================================
+   PULSE CALENDAR — additions
+   ========================================== */
+
+.calendar-section-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 18px 0 10px;
+}
+
+.calendar-week-strip {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.calendar-week-card {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px;
+    border-radius: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.calendar-week-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.calendar-week-card.today {
+    border: 1.5px solid var(--primary);
+}
+
+.calendar-week-card.selected {
+    background: var(--primary);
+}
+
+.calendar-week-card.selected .calendar-week-daylabel,
+.calendar-week-card.selected .calendar-week-num {
+    color: var(--white);
+}
+
+.calendar-week-daylabel {
+    font-size: 10px;
+    color: var(--muted);
+    margin: 0;
+}
+
+.calendar-week-num {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 2px 0;
+    color: var(--text);
+}
+
+.calendar-week-dots {
+    height: 6px;
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+}
+
+.calendar-week-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.calendar-count-badge {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+@keyframes calendarPulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(104, 85, 232, 0.35); }
+    50% { box-shadow: 0 0 0 5px rgba(104, 85, 232, 0); }
+}
+
+.calendar-day.pulse-today {
+    animation: calendarPulseGlow 2s infinite;
+}
+
+
+/* ==========================================
+   PULSE CALENDAR — compact + colorful pass
+   ========================================== */
+
+#page-calendar .page-header {
+    margin-bottom: 8px;
+}
+
+#page-calendar .page-header h1 {
+    font-size: 20px;
+}
+
+#page-calendar .page-header p {
+    font-size: 12.5px;
+}
+
+.calendar-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 10px 0 6px;
+}
+
+.calendar-week-strip {
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.calendar-week-card {
+    padding: 6px 3px;
+    border-radius: 8px;
+}
+
+.calendar-week-daylabel {
+    font-size: 9px;
+}
+
+.calendar-week-num {
+    font-size: 13px;
+    margin: 1px 0;
+}
+
+.calendar-week-dots {
+    height: 5px;
+}
+
+.calendar-week-dots span {
+    width: 4px;
+    height: 4px;
+}
+
+.calendar-wrap {
+    gap: 12px;
+}
+
+.calendar-card {
+    padding: 12px;
+}
+
+.calendar-nav {
+    margin-bottom: 8px;
+}
+
+.calendar-nav h2 {
+    font-size: 13px;
+}
+
+.calendar-nav-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+}
+
+.calendar-weekdays {
+    font-size: 9.5px;
+    margin-bottom: 4px;
+}
+
+.calendar-grid {
+    gap: 3px;
+}
+
+/* Fixed height instead of a square aspect-ratio — this is
+   what actually removes the scroll, since square cells grow
+   with column width on wide screens. */
+.calendar-day {
+    aspect-ratio: unset;
+    height: 28px;
+    font-size: 10.5px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.calendar-day.today {
+    border-width: 1.5px;
+}
+
+.calendar-count-badge {
+    top: 1px;
+    right: 2px;
+    font-size: 7px;
+    background: rgba(255,255,255,0.75);
+    border-radius: 4px;
+    padding: 0 2px;
+}
+
+.calendar-side {
+    padding: 12px;
+    min-height: 0;
+}
+
+.calendar-side h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.calendar-day-event-item {
+    padding: 7px 0;
+}
+
+.calendar-day-event-item strong {
+    font-size: 12px;
+}
+
+.calendar-day-event-item small {
+    font-size: 10px;
+}
+
+/* Stronger, more saturated color per day instead of a faint
+   tint — this is the "colorful" pass. Each alpha step below
+   overrides the paler ones set in JS via inline style, so we
+   go straight to vivid via a CSS class instead. */
+.calendar-day[data-intensity="1"] {
+    filter: saturate(1.3);
+}
+
+.calendar-day[data-intensity="2"],
+.calendar-day[data-intensity="3"] {
+    filter: saturate(1.5) brightness(1.02);
+    color: var(--white);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+
+/* ==========================================
+   PULSE CALENDAR — purple pass
+   ========================================== */
+
+.calendar-card {
+    position: relative;
+    overflow: hidden;
+    border-top: 3px solid var(--primary);
+}
+
+.calendar-nav-btn {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.calendar-nav-btn:hover {
+    background: #5443c9;
+}
+
+.calendar-nav h2 {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.calendar-weekdays span {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.calendar-day:not(.empty):hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+/* A day with no events still gets a soft purple wash if it's
+   today, so "today" reads clearly even before anything is
+   scheduled on it. */
+.calendar-day.today:not([data-intensity]) {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.calendar-week-card {
+    border: 1px solid var(--primary-light);
+}
+
+.calendar-week-card:hover {
+    background: var(--primary-light);
+}
+
+.calendar-week-card.today:not(.selected) {
+    background: var(--primary-light);
+}
+
+.calendar-side {
+    border-top: 3px solid var(--primary);
+}
+
+.calendar-side h3 {
+    color: var(--primary);
+}
+
+.calendar-count-badge {
+    background: var(--primary);
+    color: var(--white) !important;
+    text-shadow: none;
+}
+
+
+/* ==========================================
+   EVENT FULL BADGE
+   ========================================== */
+
+.event-full-badge {
+    background: #fde8ea;
+    color: #c81e3a;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.2px;
+}
